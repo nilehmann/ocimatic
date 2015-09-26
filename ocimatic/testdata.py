@@ -16,6 +16,7 @@ class Dataset:
         for test in self._dataset:
             yield test
 
+
 class TestData:
     input_ext = 'in'
     solution_ext = 'sol'

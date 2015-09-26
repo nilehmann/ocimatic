@@ -45,7 +45,7 @@
 \global\let\@problem\@empty
 \newcommand{\problem}[1]{\def\@problem{#1}}
 
-\renewcommand{\maketitle}{
+\newcommand{\mymaketitle}{
     \begin{center}
       \ifthenelse{\equal{\@problem}{}}{}{\huge{\bf \sf Problema \@problem\\}}
     \LARGE{\sf \@title}\\[2mm]
@@ -59,7 +59,7 @@
                                      {-1.0ex\@plus -1ex \@minus -.2ex}%
                                      {1.0ex \@plus .2ex}%
                                    {\reset@font\large\bfseries}}
-\newenvironment{problemDescription}{\maketitle}{}
+\newenvironment{problemDescription}{\clearpage\mymaketitle}{}
 \newenvironment{inputDescription}{\subsection*{Entrada}}{\par}
 \newenvironment{outputDescription}{\subsection*{Salida}}{\par}
 

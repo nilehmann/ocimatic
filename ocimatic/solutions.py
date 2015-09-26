@@ -14,10 +14,9 @@ def get_solutions_from_dir(dir_path):
 
 def make_solution_from_file_path(file_path):
     basename_path, ext = os.path.splitext(file_path)
-    ext = ext[1:]
-    if ext in CppSolution.src_exts:
+    if ext == CppSolution.src_ext:
         return CppSolution(basename_path, ext)
-    if ext in CSolution.src_exts:
+    if ext == CSolution.src_ext:
         return CSolution(basename_path, ext)
     else:
         return None
@@ -25,10 +24,10 @@ def make_solution_from_file_path(file_path):
 
 class Solution:
     def __init__(self, basename_path, src_ext, bin_ext):
-        assert os.path.isfile('%s.%s' % (basename_path, src_ext))
+        assert os.path.isfile(basename_path + src_ext)
         self._basename_path = basename_path
-        self._src_path = '%s.%s' % (basename_path, src_ext)
-        self._bin_path = '%s.%s' % (basename_path, bin_ext)
+        self._src_path = basename_path + src_ext
+        self._bin_path = basename_path + bin_ext
 
     def run(self, in_path, out_path):
         if not self.isbuilt():
@@ -58,11 +57,13 @@ class Solution:
 
 
 class CppSolution(Solution):
-    src_exts = ["cpp", "cc"]
-    bin_ext = "bin"
+    src_ext = ".cpp"
+    bin_ext = ".bin"
 
-    def __init__(self, basename_path, src_ext="cpp"):
-        super().__init__(basename_path, src_ext, CppSolution.bin_ext)
+    def __init__(self, basename_path):
+        super().__init__(basename_path,
+                         CppSolution.src_ext,
+                         CppSolution.bin_ext)
 
     def build(self):
         cmd_line = 'g++ -O2 -o %s %s' % (self._bin_path, self._src_path)
@@ -70,11 +71,11 @@ class CppSolution(Solution):
 
 
 class CSolution(Solution):
-    src_exts = ["c"]
-    bin_ext = "bin"
+    src_ext = ".c"
+    bin_ext = ".bin"
 
-    def __init__(self, basename_path, src_ext="cpp"):
-        super().__init__(basename_path, src_ext, CSolution.bin_ext)
+    def __init__(self, basename_path):
+        super().__init__(basename_path, CSolution.src_ext, CSolution.bin_ext)
 
     def build(self):
         cmd_line = 'gcc -O2 -lm -std=c99 -o %s %s' % (self._bin_path,

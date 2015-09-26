@@ -1,28 +1,62 @@
 import os
 import subprocess
+import shutil
 from tempfile import NamedTemporaryFile
-from testdata import Dataset
-from solutions import get_solutions_from_dir
-from statement import Statement
-import layout
+from glob import glob
+
+from .testdata import Dataset, TestData
+from .solutions import get_solutions_from_dir
+from .latex import Latex
+
+
+def create_layout_for_problem(problem_path):
+    ocimatic_dir = os.path.dirname(__file__)
+    try:
+        shutil.copytree(os.path.join(ocimatic_dir, "resources/problem-skel"),
+                        problem_path)
+    except:
+        return False
+    return True
+
+
+def get_problems_from_dir(dir_path):
+    """Returns a list of problems in dir_path
+    Returns:
+      (list of Problem)
+    """
+    problems = []
+    for path in glob('%s/*' % dir_path):
+        if os.path.isdir(path):
+            problems.append(Problem(path))
+    return problems
+
 
 class Problem:
-    def __init__(self, dir_path):
-        assert os.path.isdir(dir_path)
-        self._dir_path = dir_path
-        self._dataset = Dataset('%s/%s' % (dir_path, layout.testdata_path))
+    def __init__(self, path):
+        assert os.path.isdir(path)
+        dir_path, name = os.path.split(os.path.normpath(path))
+        self._path = path
+        self._name = name
+
+        self._dataset = Dataset(os.path.join(self._path, 'testdata'))
+
         self._correct_solutions = get_solutions_from_dir(
-            '%s/%s' % (dir_path, layout.solutions_correct_path))
+            os.path.join(self._path, 'solutions/correct'))
+
         self._partial_solutions = get_solutions_from_dir(
-            '%s/%s' % (dir_path, layout.solutions_partial_path))
-        self._statement = Statement('%s/%s' % (dir_path, layout.statement_path))
+            os.path.join(self._path, 'solutions/partial'))
 
+        self._statement = Latex(os.path.join(self._path,
+                                             'documents/statement.tex'))
 
-    def get_statement(self):
+        self._samples = [TestData(os.path.join(self._path, 'documents', s))
+                         for s in self._statement.io_samples()]
+
+    def statement(self):
         return self._statement
 
     def name(self):
-        return os.path.basename(os.path.normpath(self._dir_path))
+        return self._name
 
     def __str__(self):
         return self.name()
@@ -35,7 +69,7 @@ class Problem:
     def check(self, solution_callback, start_callback, end_callback):
         for solution in self._correct_solutions:
             solution_callback(str(solution))
-            for test in self._dataset:
+            for test in self._dataset + self._samples:
                 start_callback(str(test))
                 temp_file = NamedTemporaryFile(delete=False)
                 temp_path = temp_file.name
@@ -59,7 +93,6 @@ class Problem:
             start_callback(str(test))
             end_callback(solution.run(test.get_input_path(),
                                       test.get_solution_path()))
-
 
     def build_all(self, start_callback, end_callback):
         for solution in self._correct_solutions:
