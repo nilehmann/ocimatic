@@ -128,8 +128,7 @@ def new_contest(args):
     if len(args) != 1:
         usage()
     contest_name = args[0]
-    status = create_layout_for_contest('%s/%s' % (os.getcwd(),
-                                                  contest_name))
+    status = create_layout_for_contest(os.path.join(os.getcwd(), contest_name))
     if status:
         show_message('Info', 'Contest [%s] created' % contest_name)
     else:
@@ -157,8 +156,7 @@ def new_problem(args):
     if len(args) != 1:
         usage()
     problem_name = args[0]
-    status = create_layout_for_problem('%s/%s' % (os.getcwd(),
-                                                  problem_name))
+    status = create_layout_for_problem(os.path.join(os.getcwd(), problem_name))
 
     if status:
         show_message('Info', 'Problem [%s] created' % problem_name)

@@ -30,16 +30,20 @@ class Contest:
     def gen_problemset_pdf(self):
         tmpdir_path = mkdtemp()
 
-        latex_files = [p.statement() for p in self._problems]
-        latex_files.insert(0, self._frontpage)
+        try:
+            latex_files = [p.statement() for p in self._problems]
+            latex_files.insert(0, self._frontpage)
 
-        merge_files(latex_files, tmpdir_path, 'problemset.tex')
+            merge_files(latex_files, tmpdir_path, 'problemset.tex')
 
-        latex_file = Latex(os.path.join(tmpdir_path, 'problemset.tex'))
+            latex_file = Latex(os.path.join(tmpdir_path, 'problemset.tex'))
 
-        status = latex_file.gen_pdf()
+            status = latex_file.gen_pdf()
 
-        if status:
             shutil.copy2(os.path.join(tmpdir_path, 'problemset.pdf'),
                          os.path.join(self._dir_path, 'problemset.pdf'))
+        except:
+            return False
+        finally:
+            shutil.rmtree(tmpdir_path)
         return status

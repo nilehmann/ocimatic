@@ -66,22 +66,34 @@ class Problem:
         start_callback(str(self._statement))
         end_callback(self._statement.gen_pdf())
 
+    def __testdata_iter(self):
+        for test in self._dataset:
+            yield test
+        for test in self._samples:
+            yield test
+
     def check(self, solution_callback, start_callback, end_callback):
         for solution in self._correct_solutions:
             solution_callback(str(solution))
-            for test in self._dataset + self._samples:
+            for test in self.__testdata_iter():
                 start_callback(str(test))
                 temp_file = NamedTemporaryFile(delete=False)
-                temp_path = temp_file.name
+                try:
+                    temp_path = temp_file.name
 
-                status = solution.run(test.get_input_path(),
-                                      temp_path)
-                if status:
-                    status = subprocess.call(['diff',
-                                              test.get_solution_path(),
-                                              temp_path],
-                                             stdout=NamedTemporaryFile(),
-                                             stderr=NamedTemporaryFile()) == 0
+                    status = solution.run(test.get_input_path(),
+                                          temp_path)
+                    if status:
+                        status = subprocess.call(['diff',
+                                                  test.get_solution_path(),
+                                                  temp_path],
+                                                 stdout=NamedTemporaryFile(),
+                                                 stderr=NamedTemporaryFile())
+                        status = status == 0
+                except:
+                    end_callback(False)
+                finally:
+                    os.unlink(temp_path)
 
                 end_callback(status)
 

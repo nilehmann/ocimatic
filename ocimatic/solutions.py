@@ -15,9 +15,9 @@ def get_solutions_from_dir(dir_path):
 def make_solution_from_file_path(file_path):
     basename_path, ext = os.path.splitext(file_path)
     if ext == CppSolution.src_ext:
-        return CppSolution(basename_path, ext)
+        return CppSolution(basename_path)
     if ext == CSolution.src_ext:
-        return CSolution(basename_path, ext)
+        return CSolution(basename_path)
     else:
         return None
 

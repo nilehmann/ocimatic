@@ -19,13 +19,13 @@ def copytree(src, dst, symlinks=False, ignore=None):
 
 def compile_latex(dir_path, filename):
     cmd_line = 'cd %s && pdflatex %s %s' % (dir_path,
-                                            # '-interaction=batchmode',
-                                            '',
+                                            '-interaction=batchmode',
+                                            # '',
                                             filename)
 
     # We run latex multiple times just to be sure all is in place
-    # f = open('/dev/null', 'a')
-    f = open('/dev/stdout', 'w')
+    f = open('/dev/null', 'a')
+    # f = open('/dev/stdout', 'w')
     st = subprocess.call(cmd_line, stdout=f, shell=True) == 0
     st = st and subprocess.call(cmd_line, stdout=f, shell=True) == 0
     st = st and subprocess.call(cmd_line, stdout=f, shell=True) == 0
@@ -183,24 +183,25 @@ class Latex:
     def gen_pdf(self):
         tmpdir_path = mkdtemp()
 
-        copytree(self._dir_path, tmpdir_path)
+        try:
+            copytree(self._dir_path, tmpdir_path)
 
-        # Copy oci.cls and logo.eps
-        script_dir = path.dirname(__file__)
-        shutil.copy2(path.join(script_dir, 'resources/oci.cls'),
-                     path.join(tmpdir_path, 'oci.cls'))
-        shutil.copy2(path.join(script_dir, 'resources/logo.eps'),
-                     path.join(tmpdir_path, 'logo.eps'))
+            # Copy oci.cls and logo.eps
+            script_dir = path.dirname(__file__)
+            shutil.copy2(path.join(script_dir, 'resources/oci.cls'),
+                         path.join(tmpdir_path, 'oci.cls'))
+            shutil.copy2(path.join(script_dir, 'resources/logo.eps'),
+                         path.join(tmpdir_path, 'logo.eps'))
 
-        status = compile_latex(tmpdir_path, self._filename)
+            status = compile_latex(tmpdir_path, self._filename)
 
-        if status:
-            try:
-                basename, _ = path.splitext(self._filename)
-                pdf = basename + ".pdf"
-                shutil.copy2(path.join(tmpdir_path, pdf),
-                             path.join(self._dir_path, pdf))
-            except:
-                return False
+            basename, _ = path.splitext(self._filename)
+            pdf = basename + ".pdf"
+            shutil.copy2(path.join(tmpdir_path, pdf),
+                         path.join(self._dir_path, pdf))
+        except:
+            return False
+        finally:
+            shutil.rmtree(tmpdir_path)
 
         return status

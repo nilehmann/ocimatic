@@ -8,7 +8,8 @@ class Dataset:
         self.dir_path = dir_path
 
         self._dataset = []
-        for file_path in glob('%s/*.%s' % (dir_path, TestData.input_ext)):
+        for file_path in sorted(glob(os.path.join(dir_path,
+                                                  '*' + TestData.input_ext))):
             basename, _ = os.path.splitext(file_path)
             self._dataset.append(TestData(basename))
 
