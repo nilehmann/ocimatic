@@ -73,31 +73,26 @@ def task_header(name, message):
 def start_task(fn, length=80):
     # Ensure the message has an even length.
     if len(fn) % 2 == 0:
-        fn = ' * %s   ' % fn
+        fn = '%s . ' % fn
     else:
-        fn = ' * %s  ' % fn
+        fn = '%s  ' % fn
 
     if len(fn) < length:
-        fn += '. ' * ((length - len(fn)) // 2)
+        fn = ' * ' + fn + '. ' * ((length - len(fn)) // 2)
     elif len(fn) > length:
         # clip message
-        fn = fn[:(length-4)] + '... '
+        fn = ' * ...' + fn[len(fn)-length+4:] 
 
     sys.stdout.write(fn)
     sys.stdout.flush()
 
 
-def end_task(status=None):
-    if status is True:
-        status = 'OK'
+def end_task(msg, status):
+    if status:
         color = OK
-    elif status is False:
-        status = 'failed'
-        color = ERROR
     else:
-        status = ''
-        color = INFO
-    sys.stdout.write(colorize(status, color))
+        color = ERROR
+    sys.stdout.write(colorize(msg, color))
     print()
 
 
@@ -206,7 +201,7 @@ def change_directory():
 def parse_arguments():
     """Parse options returning the command and the rest of the arguments."""
     try:
-        optlist, args = getopt.getopt(sys.argv[1:], 'h|v')
+        optlist, args = getopt.getopt(sys.argv[1:], 'h')
     except getopt.GetoptError as err:
         error_message(str(err))
 
@@ -239,7 +234,11 @@ def contest(args):
         change_directory()
         contest = Contest(os.getcwd())
         start_task('Generating problemset')
-        end_task(contest.gen_problemset_pdf())
+        status = contest.gen_problemset_pdf()
+        msg = 'OK'
+        if not status:
+            msg = 'Failed'
+        end_task(msg, status)
     else:
         new_contest(args)
 
@@ -260,34 +259,34 @@ def new_problem(args):
 
 def build_problems(problems):
     for problem in problems:
-        task_header(problem, "Building solutions...")
+        task_header(problem, "Building solutions")
         problem.build_all(
             lambda solution: start_task(solution),
-            lambda status: end_task(status))
+            lambda msg, status: end_task(msg, status))
 
 
 def gen_sol_files(problems):
     for problem in problems:
-        task_header(problem, "Generating solutions for testdata...")
+        task_header(problem, "Generating solutions for testdata")
         problem.gen_solutions_for_dataset(
             lambda testdata: start_task(testdata),
-            lambda status: end_task(status))
+            lambda msg, status: end_task(msg, status))
 
 
 def check_problem(problems):
     for problem in problems:
         problem.check(
             lambda solution: task_header(problem,
-                                         "Checking %s... " % solution),
+                                         "Checking %s" % solution),
             lambda testdata: start_task(testdata),
-            lambda status: end_task(status))
+            lambda msg, status: end_task(msg, status))
 
 
 def gen_pdf_problem(problems):
     for problem in problems:
-        task_header(problem, "Generating pdf file...")
+        task_header(problem, "Generating pdf file")
         problem.gen_pdf(lambda statement: start_task(statement),
-                        lambda status: end_task(status))
+                        lambda msg, status: end_task(msg, status))
 
 
 def problem(args):

@@ -31,12 +31,11 @@ class TestData:
     def __str__(self):
         return self._input_path
 
-    def get_input_path(self):
+    def input_path(self):
         return self._input_path
 
-    def get_solution_path(self):
+    def solution_path(self):
         return self._solution_path
 
     def has_solution(self):
         return os.path.isfile(self._solution_path)
-

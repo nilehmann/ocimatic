@@ -64,7 +64,11 @@ class Problem:
 
     def gen_pdf(self, start_callback, end_callback):
         start_callback(str(self._statement))
-        end_callback(self._statement.gen_pdf())
+        status = self._statment.gen_pdf()
+        message = 'OK'
+        if not status:
+            message = 'Failed'
+        end_callback(message, status)
 
     def __testdata_iter(self):
         for test in self._dataset:
@@ -80,22 +84,35 @@ class Problem:
                 temp_file = NamedTemporaryFile(delete=False)
                 try:
                     temp_path = temp_file.name
+                    if not test.has_solution():
+                        status = False
+                        message = 'No expected solution'
+                    else:
+                        status, time = solution.run(test.input_path(),
+                                                    temp_path)
 
-                    status = solution.run(test.get_input_path(),
-                                          temp_path)
-                    if status:
-                        status = subprocess.call(['diff',
-                                                  test.get_solution_path(),
-                                                  temp_path],
-                                                 stdout=NamedTemporaryFile(),
-                                                 stderr=NamedTemporaryFile())
-                        status = status == 0
-                except:
-                    end_callback(False)
+                        message = ''
+                        if not status:
+                            message = 'Runtime Error'
+                        else:
+                            with open('/dev/null', 'a') as null:
+                                status = subprocess.call(['diff',
+                                                          test.solution_path(),
+                                                          temp_path],
+                                                         stdout=null,
+                                                         stderr=null)
+                            status = status == 0
+                            message = 'OK [%.3fs]' % time
+                            if not status:
+                                message = 'Wrong [%.3fs]' % time
+                except Exception as e:
+                    raise e
+                    status = False
+                    message = 'Unexpected Error'
                 finally:
                     os.unlink(temp_path)
 
-                end_callback(status)
+                end_callback(message, status)
 
     def gen_solutions_for_dataset(self, start_callback, end_callback):
         assert len(self._correct_solutions) > 0
@@ -103,14 +120,18 @@ class Problem:
         solution = self._correct_solutions[0]
         for test in self._dataset:
             start_callback(str(test))
-            end_callback(solution.run(test.get_input_path(),
-                                      test.get_solution_path()))
+            status = solution.run(test.get_input_path(),
+                                  test.get_solution_path())
+            message = 'OK'
+            if not status:
+                message = 'Failed'
+            end_callback(message, status)
 
     def build_all(self, start_callback, end_callback):
-        for solution in self._correct_solutions:
+        for solution in self._correct_solutions + self._partial_solutions:
             start_callback(str(solution))
-            end_callback(solution.build())
-
-        for solution in self._partial_solutions:
-            start_callback(str(solution))
-            end_callback(solution.build())
+            status = solution.build()
+            message = 'OK'
+            if not status:
+                message = 'Failed'
+            end_callback(message, status)

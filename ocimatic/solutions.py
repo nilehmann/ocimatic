@@ -44,7 +44,9 @@ class Solution:
                 os.dup2(err_file.fileno(), 2)
             os.execl(self._bin_path, self._bin_path)
         (pid, status, rusage) = os.wait4(pid, 0)
-        return os.WEXITSTATUS(status) == 0
+        status = os.WEXITSTATUS(status) == 0
+        wtime = rusage.ru_utime + rusage.ru_stime
+        return status, wtime
 
     def __str__(self):
         return os.path.basename(self._src_path)
