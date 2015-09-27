@@ -20,12 +20,12 @@ class Dataset:
 
 class TestData:
     input_ext = 'in'
-    solution_ext = 'sol'
+    expected_ext = 'sol'
 
     def __init__(self, basename_path):
         self._basename_path = basename_path
         self._input_path = '%s.%s' % (basename_path, TestData.input_ext)
-        self._solution_path = '%s.%s' % (basename_path, TestData.solution_ext)
+        self._expected_path = '%s.%s' % (basename_path, TestData.expected_ext)
         assert os.path.isfile(self._input_path)
 
     def __str__(self):
@@ -34,8 +34,8 @@ class TestData:
     def input_path(self):
         return self._input_path
 
-    def solution_path(self):
-        return self._solution_path
+    def expected_path(self):
+        return self._expected_path
 
-    def has_solution(self):
-        return os.path.isfile(self._solution_path)
+    def has_expected(self):
+        return os.path.isfile(self._expected_path)

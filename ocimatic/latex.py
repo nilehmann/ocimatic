@@ -43,7 +43,8 @@ def merge_packages(files):
     return packages
 
 
-def merge_files(files, dst, filename):
+def merge_files(files, dst_path):
+    dst, filename = os.path.split(dst_path)
     os.makedirs(dst, exist_ok=True)
     output_file = open(path.join(dst, filename), 'w')
     packages = merge_packages(files)

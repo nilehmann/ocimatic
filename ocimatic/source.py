@@ -1,15 +1,7 @@
 import os
 from glob import glob
+from tempfile import NamedTemporaryFile
 import subprocess
-
-
-def get_solutions_from_dir(dir_path):
-    solutions = []
-    for file_path in glob('%s/*' % dir_path):
-        sol = make_solution_from_file_path(file_path)
-        if sol:
-            solutions.append(sol)
-    return solutions
 
 
 def make_solution_from_file_path(file_path):
@@ -32,21 +24,7 @@ class Solution:
     def run(self, in_path, out_path):
         if not self.isbuilt():
             self.build()
-        assert os.path.isfile(self._bin_path)
-
-        pid = os.fork()
-        if pid == 0:
-            with open(in_path, 'r') as in_file:
-                os.dup2(in_file.fileno(), 0)
-            with open(out_path, 'w') as out_file:
-                os.dup2(out_file.fileno(), 1)
-            with open('/dev/null', 'w') as err_file:
-                os.dup2(err_file.fileno(), 2)
-            os.execl(self._bin_path, self._bin_path)
-        (pid, status, rusage) = os.wait4(pid, 0)
-        status = os.WEXITSTATUS(status) == 0
-        wtime = rusage.ru_utime + rusage.ru_stime
-        return status, wtime
+        return Binary(self._bin_path).run(in_path, out_path)
 
     def __str__(self):
         return os.path.basename(self._src_path)
@@ -83,3 +61,46 @@ class CSolution(Solution):
         cmd_line = 'gcc -O2 -lm -std=c99 -o %s %s' % (self._bin_path,
                                                       self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
+
+
+class Binary:
+    def __init__(self, file_path):
+        assert os.path.isfile(file_path)
+        self._file_path = file_path
+
+    def run(self, in_path, out_path):
+        pid = os.fork()
+        if pid == 0:
+            with open(in_path, 'r') as in_file:
+                os.dup2(in_file.fileno(), 0)
+            with open(out_path, 'a') as out_file:
+                os.dup2(out_file.fileno(), 1)
+            with open('/dev/null', 'w') as err_file:
+                os.dup2(err_file.fileno(), 2)
+            os.execl(self._file_path, self._file_path)
+        (pid, status, rusage) = os.wait4(pid, 0)
+        status = os.WEXITSTATUS(status) == 0
+        wtime = rusage.ru_utime + rusage.ru_stime
+        return status, wtime
+
+
+class DiffChecker:
+    def __call__(self, in_path, expected_path, out_path):
+        with open('/dev/null', 'a') as null:
+            status = subprocess.call(['diff',
+                                        expected_path,
+                                        out_path],
+                                        stdout=null,
+                                        stderr=null)
+            return 1.0 if status == 0 else 0.0
+
+
+class CustomChecker:
+    def __init__(self, file_path):
+        self._binary = Binary(file_path)
+
+    def __call__(self, in_path, expected_path, out_path):
+        with NamedTemporaryFile() as tmp_file:
+            tmp_path = tmp_file.name
+            status, _ = self._binary.run(in_path, tmp_path)
+            return float(tmp_file.read())

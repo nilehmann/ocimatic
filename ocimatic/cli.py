@@ -6,7 +6,9 @@ import getopt
 import textwrap
 import re
 from .contest import Contest, create_layout_for_contest
-from .problems import Problem, create_layout_for_problem
+from .contest import Problem, create_layout_for_problem
+
+OPT_PARTIAL = False
 
 RESET = '\x1b[0m'
 BOLD = '\x1b[1m'
@@ -87,12 +89,12 @@ def start_task(fn, length=80):
     sys.stdout.flush()
 
 
-def end_task(msg, status):
-    if status:
+def end_task(res):
+    if res:
         color = OK
     else:
         color = ERROR
-    sys.stdout.write(colorize(msg, color))
+    sys.stdout.write(colorize(str(res.msg), color))
     print()
 
 
@@ -157,14 +159,17 @@ def usage():
     indent(1, bold('new') + ' ' + underline('NAME'))
     description(2, 'Create a new problem with the given name.')
     indent(1, bold('expected'))
-    description(2, 'Generates expected output files (*.sol) for all input'
+    description(2, 'Generate expected output files (*.sol) for all input'
                 ' testdata (*.in) using any correct solution.')
     indent(1, bold('pdf'))
     description(2, 'Generates pdf file for the problem statement.')
     indent(1, bold('check'))
     description(2, 'Checks input/output running all correct solutions with all'
-                ' testdata and sample inputs, and comparing the results with'
-                ' the excepted output.')
+                ' testdata and sample inputs, and comparing if the expected'
+                ' output is the same.')
+    indent(1, bold('run'))
+    description(2, 'Run solutions with all test data and displays the output of'
+                ' the checker.')
     indent(1, bold('build'))
     description(2, 'Build all correct and partial solutions.')
     writeln()
@@ -172,6 +177,10 @@ def usage():
     header('COMMANDS')
     indent(1, bold('-h'))
     description(2, 'Display this help.')
+    indent(1, bold('-p, --partial'))
+    description(2, 'By default the command ' + bold('run') + ' doesn\'t execute'
+                ' partial solutions. Use this option to run partial solution as'
+                ' well')
     writeln()
     sys.exit(1)
 
@@ -201,7 +210,7 @@ def change_directory():
 def parse_arguments():
     """Parse options returning the command and the rest of the arguments."""
     try:
-        optlist, args = getopt.getopt(sys.argv[1:], 'h')
+        optlist, args = getopt.getopt(sys.argv[1:], 'h|p', 'partial')
     except getopt.GetoptError as err:
         error_message(str(err))
 
@@ -234,11 +243,7 @@ def contest(args):
         change_directory()
         contest = Contest(os.getcwd())
         start_task('Generating problemset')
-        status = contest.gen_problemset_pdf()
-        msg = 'OK'
-        if not status:
-            msg = 'Failed'
-        end_task(msg, status)
+        end_task(contest.gen_problemset_pdf())
     else:
         new_contest(args)
 
@@ -260,40 +265,42 @@ def new_problem(args):
 def build_problems(problems):
     for problem in problems:
         task_header(problem, "Building solutions")
-        problem.build_all(
-            lambda solution: start_task(solution),
-            lambda msg, status: end_task(msg, status))
+        problem.build_all(start_task, end_task)
 
 
 def gen_sol_files(problems):
     for problem in problems:
-        task_header(problem, "Generating solutions for testdata")
-        problem.gen_solutions_for_dataset(
-            lambda testdata: start_task(testdata),
-            lambda msg, status: end_task(msg, status))
+        task_header(problem, "Generating expected solutions for testdata")
+        problem.gen_solutions_for_dataset(start_task, end_task)
 
 
 def check_problem(problems):
     for problem in problems:
         problem.check(
-            lambda solution: task_header(problem,
-                                         "Checking %s" % solution),
-            lambda testdata: start_task(testdata),
-            lambda msg, status: end_task(msg, status))
+            lambda solution: task_header(problem, "Checking %s" % solution),
+            start_task, end_task)
+
+def run_problem(problems):
+    for problem in problems:
+        problem.run(
+            lambda solution: task_header(problem, "Checking %s" % solution),
+            start_task,
+            end_task,
+            OPT_PARTIAL,
+        )
 
 
 def gen_pdf_problem(problems):
     for problem in problems:
         task_header(problem, "Generating pdf file")
-        problem.gen_pdf(lambda statement: start_task(statement),
-                        lambda msg, status: end_task(msg, status))
+        problem.gen_pdf(start_task, end_task)
 
 
 def problem(args):
     if not args:
         usage()
 
-    cmds = ['new', 'build', 'check', 'expected', 'pdf']
+    cmds = ['new', 'build', 'check', 'expected', 'pdf', 'run']
 
     problem_call = change_directory()
     contest = Contest(os.getcwd())
@@ -318,11 +325,14 @@ def problem(args):
             check_problem(problems)
         elif args[0] == 'pdf':
             gen_pdf_problem(problems)
+        elif args[0] == 'run':
+            run_problem(problems)
     else:
         new_problem(args)
 
 
 def main():
+    global OPT_PARTIAL
     mode, args, optlist = parse_arguments()
 
     if mode not in ['contest', 'problem']:
@@ -331,6 +341,8 @@ def main():
     for (key, val) in optlist:
         if key == '-h':
             usage()
+        elif key == '-p' or key == '--partial':
+            OPT_PARTIAL = True
 
     if mode == "contest":
         contest(args)
