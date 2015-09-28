@@ -1,3 +1,6 @@
+Ocimatic
+========
+
 `ocimatic` is a tool for automating the work related to the creation of problems for the Chilean Olympiad in Informatics (OCI).
 
 Usage and Installation
