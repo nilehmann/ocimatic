@@ -134,7 +134,7 @@ def ocimatic_help():
     writeln()
 
     header('DESCRIPTION')
-    description(1, 'Ocimatic is a tool for automating tasks related to the'
+    description(1, 'Ocimatic is a tool for automating the work related to the'
                 ' creation of problems for the Chilean Olympiad in Informatics'
                 ' (OCI).')
     writeln()
@@ -148,7 +148,7 @@ def ocimatic_help():
     description(2, 'Performs contest related tasks.')
     writeln()
     indent(1, bold('problem'))
-    description(2, 'Performs tasks related to problems. If ocimatic is called'
+    description(2, 'Perform actions related to problems. If ocimatic is called'
                 ' inside a problem directory or subdirectory the action is'
                 ' performed for the specific problem. Otherwise the action is'
                 ' performed for all problems in the contest. For example, '
@@ -186,7 +186,7 @@ def ocimatic_help():
     writeln()
 
     header('OPTIONS')
-    indent(1, bold('-h'))
+    indent(1, bold('-h, --help'))
     description(2, 'Display this help.')
     writeln()
     indent(1, bold('-p, --problem') + '=' + underline('NAME'))
@@ -344,7 +344,7 @@ def main():
 
     try:
         optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:',
-                                          ['partial', 'problem='])
+                                          ['help', 'partial', 'problem='])
     except getopt.GetoptError as err:
         error_message(str(err))
 
@@ -364,7 +364,7 @@ def main():
 
     # Process options
     for (key, val) in optlist:
-        if key == '-h':
+        if key == '-h' or key == '--help':
             ocimatic_help()
         elif key == '--partial':
             OPT_PARTIAL = True
