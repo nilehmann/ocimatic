@@ -5,10 +5,12 @@ import sys
 import getopt
 import textwrap
 import re
-from .contest import Contest, create_layout_for_contest
-from .contest import Problem, create_layout_for_problem
+from .core import Contest, create_layout_for_contest
+from .core import Problem, create_layout_for_problem
+from .core import OcimaticException
 
 OPT_PARTIAL = False
+OPT_PROBLEM = None
 
 RESET = '\x1b[0m'
 BOLD = '\x1b[1m'
@@ -46,10 +48,16 @@ WARNING = BOLD + YELLOW
 ERROR = BOLD + RED
 
 
+def usage():
+    return ('Usage: ' + bold('ocimatic ') + underline('[OPTIONS]') +
+            ' ' + underline('[contest|problem]') +
+            ' ' + underline('ACTION') + ' ...')
+
+
 def error_message(message):
     writeln('ocimatic: ' + message)
-    writeln('Usage: ' + bold('ocimatic ') + underline('contest|problem') +
-            ' ' + underline('COMMAND') + ' ...')
+    writeln()
+    writeln(usage())
     writeln('Try ' + bold('ocimatic -h') + ' for more information.')
     sys.exit(1)
 
@@ -73,17 +81,18 @@ def task_header(name, message):
 
 
 def start_task(fn, length=80):
+    length -= 6
     # Ensure the message has an even length.
     if len(fn) % 2 == 0:
-        fn = '%s . ' % fn
-    else:
         fn = '%s  ' % fn
+    else:
+        fn = '%s ' % fn
 
-    if len(fn) < length:
-        fn = ' * ' + fn + '. ' * ((length - len(fn)) // 2)
+    if len(fn) <= length:
+        fn = ' * ' + fn + '. ' * ((length - len(fn)) // 2 + 3)
     elif len(fn) > length:
         # clip message
-        fn = ' * ...' + fn[len(fn)-length+4:] 
+        fn = ' * ...' + fn[len(fn)-length+3:] + '. . . '
 
     sys.stdout.write(fn)
     sys.stdout.flush()
@@ -120,10 +129,8 @@ def header(text):
     writeln(bold(text))
 
 
-def usage():
-    writeln(bold('Usage: ocimatic ') + underline('[OPTION]') + ' ... ' +
-            underline('contest|problem') +
-            ' ' + underline('COMMAND') + ' ...')
+def ocimatic_help():
+    writeln(usage())
     writeln()
 
     header('DESCRIPTION')
@@ -131,22 +138,27 @@ def usage():
                 ' creation of problems for the Chilean Olympiad in Informatics'
                 ' (OCI).')
     writeln()
-    description(1, 'To specify the task to perform you should provide one of'
-                ' the following modes')
+    description(1, 'Ocimatic use GNU style scanning mode, so option and'
+                ' non-option arguments may be intermixed. To specify the'
+                ' action to perform you should provide one of the following'
+                ' modes. If no mode is provided ' + bold('problem') +
+                ' is assumed.')
     writeln()
     indent(1, bold('contest'))
     description(2, 'Performs contest related tasks.')
     writeln()
     indent(1, bold('problem'))
     description(2, 'Performs tasks related to problems. If ocimatic is called'
-                ' inside a problem directory or subdirectory the task is'
-                ' performed for the specific problem. Otherwise the task is'
+                ' inside a problem directory or subdirectory the action is'
+                ' performed for the specific problem. Otherwise the action is'
                 ' performed for all problems in the contest. For example, '
-                ' calling ' + bold('ocimatic problem check') + ' in the contest'
-                'root will check all problems input/output correctness.')
+                ' calling ' + bold('ocimatic problem check') + ' in the'
+                ' contest root will check all problems input/output'
+                ' correctness. This behavior can be overriden with the ' +
+                bold('-p') + ' option.')
     writeln('')
 
-    header('CONTEST COMMANDS')
+    header('CONTEST ACTIONS')
     indent(1, bold('new') + ' ' + underline('NAME'))
     description(2, 'Create a new contest in the current directory with the'
                 ' given name.')
@@ -155,7 +167,7 @@ def usage():
                 ' problemset pdf.')
     writeln()
 
-    header('PROBLEM COMMANDS')
+    header('PROBLEM ACTIONS')
     indent(1, bold('new') + ' ' + underline('NAME'))
     description(2, 'Create a new problem with the given name.')
     indent(1, bold('expected'))
@@ -165,22 +177,27 @@ def usage():
     description(2, 'Generates pdf file for the problem statement.')
     indent(1, bold('check'))
     description(2, 'Checks input/output running all correct solutions with all'
-                ' testdata and sample inputs, and comparing if the expected'
-                ' output is the same.')
+                ' testdata and sample inputs.')
     indent(1, bold('run'))
-    description(2, 'Run solutions with all test data and displays the output of'
-                ' the checker.')
+    description(2, 'Run solutions with all test data and display the output'
+                ' of the checker.')
     indent(1, bold('build'))
     description(2, 'Build all correct and partial solutions.')
     writeln()
 
-    header('COMMANDS')
+    header('OPTIONS')
     indent(1, bold('-h'))
     description(2, 'Display this help.')
-    indent(1, bold('-p, --partial'))
-    description(2, 'By default the command ' + bold('run') + ' doesn\'t execute'
-                ' partial solutions. Use this option to run partial solution as'
-                ' well')
+    writeln()
+    indent(1, bold('-p, --problem') + '=' + underline('NAME'))
+    description(2, 'If specified, problem tasks are performed only on' +
+                ' problem ' + underline('NAME') + ' regardless of where'
+                ' ocimatic was called.')
+    writeln()
+    indent(1, bold('--partial'))
+    description(2, 'By default the action ' + bold('run') + ' doesn\'t'
+                ' execute partial solutions. Use this option to run partial'
+                ' solution as well.')
     writeln()
     sys.exit(1)
 
@@ -207,80 +224,72 @@ def change_directory():
     return last_dir
 
 
-def parse_arguments():
-    """Parse options returning the command and the rest of the arguments."""
-    try:
-        optlist, args = getopt.getopt(sys.argv[1:], 'h|p', 'partial')
-    except getopt.GetoptError as err:
-        error_message(str(err))
-
-    try:
-        mode = args.pop(0)
-    except IndexError:
-        usage()
-
-    return mode, args, optlist
-
-
 def new_contest(args):
-    if len(args) != 1:
-        usage()
-    contest_name = args[0]
-    status = create_layout_for_contest(os.path.join(os.getcwd(), contest_name))
-    if status:
-        show_message('Info', 'Contest [%s] created' % contest_name)
-    else:
-        error_message('Couldn\'t create contest')
+    if len(args) < 1:
+        error_message('You have to specify a name for the contest.')
+    name = args[0]
+
+    try:
+        create_layout_for_contest(os.path.join(os.getcwd(), name))
+        show_message('Info', 'Contest [%s] created' % name)
+    except Exception as e:
+        error_message('Couldn\'t create contest: %s.' % e)
 
 
-def contest(args):
+def contest_pdf(contest, _):
+    start_task('Generating problemset')
+    end_task(contest.gen_problemset_pdf())
+
+
+def contest_mode(args):
     if not args:
-        usage()
+        ocimatic_help()
+
+    actions = {
+        'pdf': contest_pdf,
+    }
 
     if args[0] == "new":
         new_contest(args[1:])
-    elif args[0] == "pdf":
+    elif args[0] in actions:
         change_directory()
         contest = Contest(os.getcwd())
-        start_task('Generating problemset')
-        end_task(contest.gen_problemset_pdf())
+        actions[args[0]](contest, args[1:])
     else:
-        new_contest(args)
+        error_message('Unknown action for contest.')
 
 
 def new_problem(args):
-    if len(args) != 1:
-        usage()
-    problem_name = args[0]
-    status = create_layout_for_problem(os.path.join(os.getcwd(), problem_name))
-
-    if status:
-        show_message('Info', 'Problem [%s] created' % problem_name)
-    else:
-        show_message('Error',
-                     'Couldn\'t create problem',
-                     ERROR)
+    if len(args) < 1:
+        error_message('You have to specify a name for the problem.')
+    name = args[0]
+    try:
+        create_layout_for_problem(os.path.join(os.getcwd(), name))
+        show_message('Info', 'Problem [%s] created' % name)
+    except Exception as e:
+        error_message('Couldn\'t create problem: %s' % e)
 
 
-def build_problems(problems):
+def problems_build(problems, _):
     for problem in problems:
         task_header(problem, "Building solutions")
         problem.build_all(start_task, end_task)
 
 
-def gen_sol_files(problems):
+def gen_sol_files(problems, _):
     for problem in problems:
         task_header(problem, "Generating expected solutions for testdata")
         problem.gen_solutions_for_dataset(start_task, end_task)
 
 
-def check_problem(problems):
+def problems_check(problems, _):
     for problem in problems:
         problem.check(
             lambda solution: task_header(problem, "Checking %s" % solution),
             start_task, end_task)
 
-def run_problem(problems):
+
+def problems_run(problems, _):
     for problem in problems:
         problem.run(
             lambda solution: task_header(problem, "Checking %s" % solution),
@@ -290,61 +299,83 @@ def run_problem(problems):
         )
 
 
-def gen_pdf_problem(problems):
+def problems_pdf(problems, _):
     for problem in problems:
         task_header(problem, "Generating pdf file")
         problem.gen_pdf(start_task, end_task)
 
 
-def problem(args):
+def problem_mode(args):
     if not args:
-        usage()
+        ocimatic_help()
 
-    cmds = ['new', 'build', 'check', 'expected', 'pdf', 'run']
+    actions = {
+        'build': problems_build,
+        'check': problems_check,
+        'expected': gen_sol_files,
+        'pdf': problems_pdf,
+        'run': problems_run
+    }
 
     problem_call = change_directory()
     contest = Contest(os.getcwd())
 
-    if args[0] == "new":
+    if args[0] == 'new':
         new_problem(args[1:])
-    elif args[0] in cmds:
-        problems = []
-        if problem_call:
-            problems.append(Problem(problem_call))
+    elif args[0] in actions:
+        if OPT_PROBLEM:
+            problems = [Problem(os.path.join(os.getcwd(), OPT_PROBLEM))]
+        elif problem_call:
+            problems = [Problem(problem_call)]
         else:
-            problems += contest.get_problems()
+            problems = contest.get_problems()
 
         if not problems:
             show_message("Warning", "no problems", WARNING)
 
-        if args[0] == 'build':
-            build_problems(problems)
-        elif args[0] == 'expected':
-            gen_sol_files(problems)
-        elif args[0] == 'check':
-            check_problem(problems)
-        elif args[0] == 'pdf':
-            gen_pdf_problem(problems)
-        elif args[0] == 'run':
-            run_problem(problems)
+        actions[args[0]](problems, args[1:])
+
     else:
-        new_problem(args)
+        error_message('Unknown action for problem.')
 
 
 def main():
-    global OPT_PARTIAL
-    mode, args, optlist = parse_arguments()
+    global OPT_PARTIAL, OPT_PROBLEM
 
-    if mode not in ['contest', 'problem']:
-        error_message('Unknown mode.')
+    try:
+        optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:',
+                                          ['partial', 'problem='])
+    except getopt.GetoptError as err:
+        error_message(str(err))
 
+    if len(args) == 0:
+        ocimatic_help()
+
+    modes = {
+        'contest': contest_mode,
+        'problem': problem_mode,
+    }
+
+    # If no mode is provided we assume problem
+    if args[0] in modes:
+        mode = args.pop(0)
+    else:
+        mode = 'problem'
+
+    # Process options
     for (key, val) in optlist:
         if key == '-h':
-            usage()
-        elif key == '-p' or key == '--partial':
+            ocimatic_help()
+        elif key == '--partial':
             OPT_PARTIAL = True
+        elif key == '--problem' or key == '-p':
+            OPT_PROBLEM = val
 
-    if mode == "contest":
-        contest(args)
-    elif mode == "problem":
-        problem(args)
+    # Select mode
+    try:
+        if mode in modes:
+            modes[mode](args)
+        else:
+            error_message('Unknown mode.')
+    except OcimaticException as exc:
+        error_message(str(exc))

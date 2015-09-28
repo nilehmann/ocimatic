@@ -33,7 +33,6 @@ def compile_latex(dir_path, filename):
 
 
 def merge_packages(files):
-    # Get packages of problems
     packages = {}
     for latex_file in files:
         for pkg, opts in latex_file.packages().items():
@@ -194,8 +193,10 @@ class Latex:
             shutil.copy2(path.join(script_dir, 'resources/logo.eps'),
                          path.join(tmpdir_path, 'logo.eps'))
 
+            # Compile
             status = compile_latex(tmpdir_path, self._filename)
 
+            # Copy generated pdf
             basename, _ = path.splitext(self._filename)
             pdf = basename + ".pdf"
             shutil.copy2(path.join(tmpdir_path, pdf),

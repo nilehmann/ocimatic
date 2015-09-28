@@ -4,7 +4,6 @@ from glob import glob
 from tempfile import mkdtemp, NamedTemporaryFile
 
 from .latex import Latex, merge_files
-from .testdata import Dataset, TestData
 from .source import make_solution_from_file_path, DiffChecker, CustomChecker
 
 
@@ -17,19 +16,25 @@ class TaskResult:
         return self.status
 
 
+class OcimaticException(Exception):
+    def __init__(self, msg):
+        self._msg = msg
+
+    def __str__(self):
+        return self._msg
+
+
 def create_layout_for_contest(contest_path):
     ocimatic_dir = os.path.dirname(__file__)
-    try:
-        shutil.copytree(os.path.join(ocimatic_dir, "resources/contest-skel"),
-                        contest_path)
-    except:
-        return False
-    return True
+    shutil.copytree(os.path.join(ocimatic_dir, "resources/contest-skel"),
+                    contest_path)
 
 
 class Contest:
     def __init__(self, dir_path):
-        assert os.path.isdir(dir_path)
+        if not os.path.isdir(dir_path) or \
+           not os.path.isfile(os.path.join(dir_path, '.ocimatic')):
+            raise OcimaticException('No contest in `%s`.' % dir_path)
         self._dir_path = dir_path
         self._problems = get_problems_from_dir(dir_path)
         self._titlepage = Latex(os.path.join(self._dir_path,
@@ -68,17 +73,10 @@ class Contest:
         return TaskResult(msg, status)
 
 
-
-
-
 def create_layout_for_problem(problem_path):
     ocimatic_dir = os.path.dirname(__file__)
-    try:
-        shutil.copytree(os.path.join(ocimatic_dir, "resources/problem-skel"),
-                        problem_path)
-    except:
-        return False
-    return True
+    shutil.copytree(os.path.join(ocimatic_dir, "resources/problem-skel"),
+                    problem_path)
 
 
 def get_problems_from_dir(dir_path):
@@ -104,7 +102,8 @@ def get_solutions_from_dir(dir_path):
 
 class Problem:
     def __init__(self, path):
-        assert os.path.isdir(path)
+        if not os.path.isdir(path):
+            raise OcimaticException('No problem in `%s`.' % path)
         dir_path, name = os.path.split(os.path.normpath(path))
         self._path = path
         self._name = name
@@ -153,9 +152,8 @@ class Problem:
 
     def run(self, solution_callback, start_callback, end_callback,
             partial, sample=False,
-            formatter=lambda outcome, time: '%.3f [%.3f]'% (outcome, time),
-            status_fun=lambda o, t: True,
-            ):
+            formatter=lambda outcome, time: '%.3f [%.3f]' % (outcome, time),
+            status_fun=lambda outcome, time: True):
         solutions = self._correct_solutions
         if partial:
             solutions += self._partial_solutions
@@ -189,13 +187,11 @@ class Problem:
 
                 end_callback(TaskResult(msg, status))
 
-
     def check(self, solution_callback, start_callback, end_callback):
         self.run(solution_callback, start_callback, end_callback,
                  False, True,
-                 lambda outcome,_ : ('OK' if outcome >= 1.0 else 'Failed'),
-                 lambda outcome,_ : outcome >= 1.0)
-
+                 lambda outcome, _: ('OK' if outcome >= 1.0 else 'Failed'),
+                 lambda outcome, _: outcome >= 1.0)
 
     def gen_solutions_for_dataset(self, start_callback, end_callback):
         if len(self._correct_solutions) == 0:
@@ -216,3 +212,43 @@ class Problem:
                 end_callback(TaskResult('OK'))
             else:
                 end_callback(TaskResult('Failed', False))
+
+
+class Dataset:
+    def __init__(self, dir_path):
+        if not os.path.isdir(dir_path):
+            raise OcimaticException('No testdata directory `%s`.' % dir_path)
+        self.dir_path = dir_path
+
+        self._dataset = []
+        for file_path in sorted(glob(os.path.join(dir_path,
+                                                  '*' + TestData.input_ext))):
+            basename, _ = os.path.splitext(file_path)
+            self._dataset.append(TestData(basename))
+
+    def __iter__(self):
+        for test in self._dataset:
+            yield test
+
+
+class TestData:
+    input_ext = 'in'
+    expected_ext = 'sol'
+
+    def __init__(self, basename_path):
+        self._basename_path = basename_path
+        self._input_path = '%s.%s' % (basename_path, TestData.input_ext)
+        self._expected_path = '%s.%s' % (basename_path, TestData.expected_ext)
+        assert os.path.isfile(self._input_path)
+
+    def __str__(self):
+        return self._input_path
+
+    def input_path(self):
+        return self._input_path
+
+    def expected_path(self):
+        return self._expected_path
+
+    def has_expected(self):
+        return os.path.isfile(self._expected_path)
