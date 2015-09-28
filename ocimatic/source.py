@@ -1,5 +1,4 @@
 import os
-from glob import glob
 from tempfile import NamedTemporaryFile
 import subprocess
 
@@ -88,10 +87,10 @@ class DiffChecker:
     def __call__(self, in_path, expected_path, out_path):
         with open('/dev/null', 'a') as null:
             status = subprocess.call(['diff',
-                                        expected_path,
-                                        out_path],
-                                        stdout=null,
-                                        stderr=null)
+                                      expected_path,
+                                      out_path],
+                                     stdout=null,
+                                     stderr=null)
             return 1.0 if status == 0 else 0.0
 
 
@@ -102,5 +101,5 @@ class CustomChecker:
     def __call__(self, in_path, expected_path, out_path):
         with NamedTemporaryFile() as tmp_file:
             tmp_path = tmp_file.name
-            status, _ = self._binary.run(in_path, tmp_path)
+            self._binary.run(in_path, tmp_path)
             return float(tmp_file.read())

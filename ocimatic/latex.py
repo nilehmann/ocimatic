@@ -96,10 +96,10 @@ class Latex:
         statement_file = open(self._file_path, 'r')
         preamble = ''
         for line in statement_file:
-            if re.search('\\\\begin{document}', line):
+            if re.search(r'\\begin{document}', line):
                 break
-            m1 = re.match('\\\\usepackage(\\[([^\\]]*)\\])?{([^}]*)}', line)
-            m2 = re.match('\\\\documentclass(\\[([^\\]]*)\\])?{([^}]*)}', line)
+            m1 = re.match(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
+            m2 = re.match(r'\\documentclass(\[([^\]]*)\])?{([^}]*)}', line)
             if not m1 and not m2:
                 preamble += line
 
@@ -111,17 +111,17 @@ class Latex:
         statement_file = open(self._file_path, 'r')
         files = set()
         for line in statement_file:
-            m = re.search('\\\\sampleIO{([^}]*)}', line)
+            m = re.search(r'\\sampleIO{([^}]*)}', line)
             m and files.add(m.group(1) + '.in')
             m and files.add(m.group(1) + '.sol')
 
-            m = re.search('\\\\includegraphics{([^}]*)}', line)
+            m = re.search(r'\\includegraphics{([^}]*)}', line)
             m and files.add(m.group(1))
 
-            m = re.search('\\\\input{([^}]*)}', line)
+            m = re.search(r'\\input{([^}]*)}', line)
             m and files.add(m.group(1) + '.tex')
 
-            m = re.search('\\\\include{([^}]*)}', line)
+            m = re.search(r'\\include{([^}]*)}', line)
             m and files.add(m.group(1) + '.tex')
         return list(files)
 
@@ -130,17 +130,17 @@ class Latex:
         document = ''
         p = False
         for line in statement_file:
-            line = re.sub('\\\\sampleIO{([^}]*)}',
-                          '\\sampleIO{%s/\g<1>}' % path,
+            line = re.sub(r'\\sampleIO{([^}]*)}',
+                          r'\sampleIO{%s/\g<1>}' % path,
                           line)
-            line = re.sub('\\\\includegraphics{([^}]*)}',
-                          '\\includegraphics{%s/\g<1>}' % path,
+            line = re.sub(r'\\includegraphics{([^}]*)}',
+                          r'\includegraphics{%s/\g<1>}' % path,
                           line)
-            if re.search('\\\\end{document}', line):
+            if re.search(r'\\end{document}', line):
                 p = False
             if p:
                 document += line
-            if re.search('\\\\begin{document}', line):
+            if re.search(r'\\begin{document}', line):
                 p = True
         statement_file.close()
         return document
@@ -148,7 +148,7 @@ class Latex:
     def title(self):
         statement_file = open(self._file_path, 'r')
         for line in statement_file:
-            m = re.match('\\\\title{([^}]*)}', line)
+            m = re.match(r'\\title{([^}]*)}', line)
             if m:
                 statement_file.close()
                 return m.group(1)
@@ -160,7 +160,7 @@ class Latex:
         statement_file = open(self._file_path, 'r')
         samples = set()
         for line in statement_file:
-            m = re.match('\\\\sampleIO{([^}]*)}', line)
+            m = re.match(r'\\sampleIO{([^}]*)}', line)
             m and samples.add(m.group(1))
         statement_file.close()
         return list(samples)
@@ -169,7 +169,7 @@ class Latex:
         statement_file = open(self._file_path, 'r')
         packages = {}
         for line in statement_file:
-            m = re.match('\\\\usepackage(\\[([^\\]]*)\\])?{([^}]*)}', line)
+            m = re.match(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
             if m:
                 # multiple packages
                 for pkg in m.group(3).split(','):
@@ -201,7 +201,8 @@ class Latex:
             pdf = basename + ".pdf"
             shutil.copy2(path.join(tmpdir_path, pdf),
                          path.join(self._dir_path, pdf))
-        except:
+        except Exception:
+            # raise e
             return False
         finally:
             shutil.rmtree(tmpdir_path)
