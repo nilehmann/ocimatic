@@ -72,7 +72,7 @@ class Binary:
         if pid == 0:
             with open(in_path, 'r') as in_file:
                 os.dup2(in_file.fileno(), 0)
-            with open(out_path, 'a') as out_file:
+            with open(out_path, 'w') as out_file:
                 os.dup2(out_file.fileno(), 1)
             with open('/dev/null', 'w') as err_file:
                 os.dup2(err_file.fileno(), 2)
@@ -85,7 +85,7 @@ class Binary:
 
 class DiffChecker:
     def __call__(self, in_path, expected_path, out_path):
-        with open('/dev/null', 'a') as null:
+        with open('/dev/null', 'w') as null:
             status = subprocess.call(['diff',
                                       expected_path,
                                       out_path],
