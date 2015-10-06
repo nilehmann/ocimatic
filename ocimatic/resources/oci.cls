@@ -39,19 +39,27 @@
 
 
 %% TITLE
+\newif\ifproblemcnt%
+\problemcntfalse%
 % \global\let\@filename\@empty
 % \newcommand{\filename}[1]{\def\@filename{#1}}
 
-\global\let\@problem\@empty
-\newcommand{\problem}[1]{\def\@problem{#1}}
+% \global\let\@problem\@empty
+% \newcommand{\problem}[1]{\def\@problem{#1}}
+\newcounter{problemcnt}
+\setcounter{problemcnt}{1}
 
 \newcommand{\mymaketitle}{
     \begin{center}
-      \ifthenelse{\equal{\@problem}{}}{}{\huge{\bf \sf Problema \@problem\\}}
+      \ifproblemcnt%
+      {\huge\bf \sf Problema \Alph{problemcnt}}\\
+      \else
+      \fi
     \LARGE{\sf \@title}\\[2mm]
     % \normalsize {\em archivo:} {\tt \@filename\{.c,.cpp,.pas\}}
     \vspace{6pt}
     \end{center}
+    \stepcounter{problemcnt}
 }
 
 %% Secciones de description
