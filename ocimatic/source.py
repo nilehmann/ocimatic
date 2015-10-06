@@ -1,4 +1,5 @@
 import os
+import uuid
 from tempfile import NamedTemporaryFile
 import subprocess
 
@@ -67,16 +68,17 @@ class Binary:
         assert os.path.isfile(file_path)
         self._file_path = file_path
 
-    def run(self, in_path, out_path):
+    def run(self, in_path, out_path, *args, **kwargs):
         pid = os.fork()
         if pid == 0:
-            with open(in_path, 'r') as in_file:
-                os.dup2(in_file.fileno(), 0)
+            if in_path:
+                with open(in_path, 'r') as in_file:
+                    os.dup2(in_file.fileno(), 0)
             with open(out_path, 'w') as out_file:
                 os.dup2(out_file.fileno(), 1)
             with open('/dev/null', 'w') as err_file:
                 os.dup2(err_file.fileno(), 2)
-            os.execl(self._file_path, self._file_path)
+            os.execl(self._file_path, self._file_path, *args)
         (pid, status, rusage) = os.wait4(pid, 0)
         status = os.WEXITSTATUS(status) == 0
         wtime = rusage.ru_utime + rusage.ru_stime
@@ -101,5 +103,5 @@ class CustomChecker:
     def __call__(self, in_path, expected_path, out_path):
         with NamedTemporaryFile() as tmp_file:
             tmp_path = tmp_file.name
-            self._binary.run(in_path, tmp_path)
+            self._binary.run(None, tmp_path, in_path, expected_path, out_path)
             return float(tmp_file.read())

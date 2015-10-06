@@ -115,8 +115,13 @@ class Latex:
             m and files.add(m.group(1) + '.in')
             m and files.add(m.group(1) + '.sol')
 
-            m = re.search(r'\\includegraphics{([^}]*)}', line)
-            m and files.add(m.group(1))
+            m = re.search(r'\\includegraphics(\[[^\]]*\])?{([^}]*)}', line)
+            if m:
+                name, ext = os.path.splitext(m.group(2))
+                name += ext
+                if not ext:
+                    name += ".eps"
+                files.add(name)
 
             m = re.search(r'\\input{([^}]*)}', line)
             m and files.add(m.group(1) + '.tex')
@@ -133,8 +138,8 @@ class Latex:
             line = re.sub(r'\\sampleIO{([^}]*)}',
                           r'\sampleIO{%s/\g<1>}' % path,
                           line)
-            line = re.sub(r'\\includegraphics{([^}]*)}',
-                          r'\includegraphics{%s/\g<1>}' % path,
+            line = re.sub(r'\\includegraphics(\[[^\]]*\])?{([^}]*)}',
+                          r'\includegraphics\g<1>{%s/\g<2>}' % path,
                           line)
             if re.search(r'\\end{document}', line):
                 p = False
