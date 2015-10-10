@@ -111,11 +111,11 @@ class Latex:
         statement_file = open(self._file_path, 'r')
         files = set()
         for line in statement_file:
-            m = re.search(r'\\sampleIO\{([^}]*)\}', line)
+            m = re.match(r'[^%]*\\sampleIO\{([^}]*)\}', line)
             m and files.add(m.group(1) + '.in')
             m and files.add(m.group(1) + '.sol')
 
-            m = re.search(r'\\includegraphics(\[[^\]]*\])?{([^}]*)}', line)
+            m = re.match(r'[^%]*\\includegraphics(\[[^\]]*\])?{([^}]*)}', line)
             if m:
                 name, ext = os.path.splitext(m.group(2))
                 name += ext
@@ -123,10 +123,10 @@ class Latex:
                     name += ".eps"
                 files.add(name)
 
-            m = re.search(r'\\input{([^}]*)}', line)
+            m = re.search(r'[^%]*\\input{([^}]*)}', line)
             m and files.add(m.group(1) + '.tex')
 
-            m = re.search(r'\\include{([^}]*)}', line)
+            m = re.search(r'[^%]*\\include{([^}]*)}', line)
             m and files.add(m.group(1) + '.tex')
         return list(files)
 
@@ -165,7 +165,7 @@ class Latex:
         statement_file = open(self._file_path, 'r')
         samples = set()
         for line in statement_file:
-            m = re.search(r'\\sampleIO{([^}]*)}', line)
+            m = re.match(r'[^%]*\\sampleIO{([^}]*)}', line)
             m and samples.add(m.group(1))
         statement_file.close()
         return list(samples)

@@ -85,7 +85,7 @@ def get_problems_from_dir(dir_path):
       (list of Problem)
     """
     problems = []
-    for path in glob('%s/*' % dir_path):
+    for path in sorted(glob('%s/*' % dir_path)):
         if os.path.isdir(path):
             problems.append(Problem(path))
     return problems
