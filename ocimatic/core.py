@@ -93,7 +93,7 @@ def get_problems_from_dir(dir_path):
 
 def get_solutions_from_dir(dir_path):
     solutions = []
-    for file_path in glob(os.path.join(dir_path, '*')):
+    for file_path in sorted(glob(os.path.join(dir_path, '*'))):
         sol = make_solution_from_file_path(file_path)
         if sol:
             solutions.append(sol)
