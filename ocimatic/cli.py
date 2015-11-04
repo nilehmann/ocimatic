@@ -305,6 +305,13 @@ def problems_pdf(problems, _):
         problem.gen_pdf(start_task, end_task)
 
 
+def problems_compress(problems, _):
+    for problem in problems:
+        task_header(problem, "Compressing test data")
+        problem.compress()
+
+
+
 def problem_mode(args):
     if not args:
         ocimatic_help()
@@ -314,7 +321,8 @@ def problem_mode(args):
         'check': problems_check,
         'expected': gen_sol_files,
         'pdf': problems_pdf,
-        'run': problems_run
+        'run': problems_run,
+        'compress' : problems_compress,
     }
 
     problem_call = change_directory()

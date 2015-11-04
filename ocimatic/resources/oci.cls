@@ -12,6 +12,11 @@
 \RequirePackage{verbatim}
 \RequirePackage{enumitem}
 
+%% Catch environment variable
+\RequirePackage{catchfile}
+\newcommand{\getenv}[2][]{%
+  \CatchFileEdef{\temp}{"|kpsewhich --var-value #2"}{\endlinechar=-1}%
+  \if\relax\detokenize{#1}\relax\temp\else\let#1\temp\fi}
 
 
 %% GEOMETRY
@@ -45,6 +50,7 @@
 % \newcommand{\filename}[1]{\def\@filename{#1}}
 
 \global\let\@problem\@empty
+\getenv[\@problem]{OCIMATIC_PROBLEM_NUMBER}
 \newcommand{\problem}[1]{\def\@problem{#1}}
 \newcounter{problemcnt}
 \setcounter{problemcnt}{1}
