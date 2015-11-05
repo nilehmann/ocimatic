@@ -38,7 +38,7 @@ def merge_packages(files):
         for pkg, opts in latex_file.packages().items():
             if pkg not in packages:
                 packages[pkg] = set()
-                packages[pkg] = packages[pkg] | opts
+            packages[pkg] = packages[pkg] | opts
     return packages
 
 
@@ -82,108 +82,18 @@ def merge_files(files, dst_path):
 
 
 class Latex:
+
     def __init__(self, file_path):
         assert path.isfile(file_path)
         dir_path, filename = path.split(path.normpath(file_path))
         self._dir_path = dir_path
         self._file_path = file_path
         self._filename = filename
-
-    def __str__(self):
-        return self._file_path
-
-    def preamble(self):
-        statement_file = open(self._file_path, 'r')
-        preamble = ''
-        for line in statement_file:
-            if re.search(r'\\begin{document}', line):
-                break
-            m1 = re.search(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
-            m2 = re.search(r'\\documentclass(\[([^\]]*)\])?{([^}]*)}', line)
-            if not m1 and not m2:
-                preamble += line
-
-        statement_file.close()
-        return preamble
-
-    def referenced_files(self):
-        """Return relative path to files referenced inside the document"""
-        statement_file = open(self._file_path, 'r')
-        files = set()
-        for line in statement_file:
-            m = re.match(r'[^%]*\\sampleIO\{([^}]*)\}', line)
-            m and files.add(m.group(1) + '.in')
-            m and files.add(m.group(1) + '.sol')
-
-            m = re.match(r'[^%]*\\includegraphics(\[[^\]]*\])?{([^}]*)}', line)
-            if m:
-                name, ext = os.path.splitext(m.group(2))
-                name += ext
-                if not ext:
-                    name += ".eps"
-                files.add(name)
-
-            m = re.search(r'[^%]*\\input{([^}]*)}', line)
-            m and files.add(m.group(1) + '.tex')
-
-            m = re.search(r'[^%]*\\include{([^}]*)}', line)
-            m and files.add(m.group(1) + '.tex')
-        return list(files)
-
-    def document(self, path=''):
-        statement_file = open(self._file_path, 'r')
-        document = ''
-        p = False
-        for line in statement_file:
-            line = re.sub(r'\\sampleIO{([^}]*)}',
-                          r'\sampleIO{%s/\g<1>}' % path,
-                          line)
-            line = re.sub(r'\\includegraphics(\[[^\]]*\])?{([^}]*)}',
-                          r'\includegraphics\g<1>{%s/\g<2>}' % path,
-                          line)
-            if re.search(r'\\end{document}', line):
-                p = False
-            if p:
-                document += line
-            if re.search(r'\\begin{document}', line):
-                p = True
-        statement_file.close()
-        return document
-
-    def title(self):
-        statement_file = open(self._file_path, 'r')
-        for line in statement_file:
-            m = re.search(r'\\title{([^}]*)}', line)
-            if m:
-                statement_file.close()
-                return m.group(1)
-
-        statement_file.close()
-        return ''
-
-    def io_samples(self):
-        statement_file = open(self._file_path, 'r')
-        samples = set()
-        for line in statement_file:
-            m = re.match(r'[^%]*\\sampleIO{([^}]*)}', line)
-            m and samples.add(m.group(1))
-        statement_file.close()
-        return list(samples)
-
-    def packages(self):
-        statement_file = open(self._file_path, 'r')
-        packages = {}
-        for line in statement_file:
-            m = re.search(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
-            if m:
-                # multiple packages
-                for pkg in m.group(3).split(','):
-                    if pkg not in packages:
-                        packages[pkg] = set()
-                    if m.group(2):
-                        packages[pkg].add(m.group(2))
-        statement_file.close()
-        return packages
+        self._reference_macros = {
+            'includegraphics': ['.eps'],
+            'include' : ['.tex'],
+            'input' : ['.tex'],
+        }
 
     def gen_pdf(self):
         tmpdir_path = mkdtemp()
@@ -213,3 +123,106 @@ class Latex:
             shutil.rmtree(tmpdir_path)
 
         return status
+
+    def __str__(self):
+        return self._file_path
+
+    def preamble(self):
+        latex_file = open(self._file_path, 'r')
+        preamble = ''
+        for line in latex_file:
+            if re.search(r'\\begin{document}', line):
+                break
+            m1 = re.search(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
+            m2 = re.search(r'\\documentclass(\[([^\]]*)\])?{([^}]*)}', line)
+            if not m1 and not m2:
+                preamble += line
+
+        latex_file.close()
+        return preamble
+
+    def packages(self):
+        latex_file = open(self._file_path, 'r')
+        packages = {}
+        for line in latex_file:
+            m = re.search(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
+            if m:
+                # multiple packages
+                for pkg in m.group(3).split(','):
+                    if pkg not in packages:
+                        packages[pkg] = set()
+                    if m.group(2):
+                        packages[pkg].add(m.group(2))
+        latex_file.close()
+        return packages
+
+    def referenced_files(self):
+        """Return relative path to files referenced inside the document"""
+        latex_file = open(self._file_path, 'r')
+        files = set()
+        for line in latex_file:
+            for macro, exts in self._reference_macros.items():
+                # with extension
+                m = re.match(r'[^%%]*\\%s(\[[^\]]*\])?{([^}]*\.[^}.]*)}' % macro,
+                             line)
+                m and files.add(m.group(2))
+
+                # without extension
+                m = re.match(r'[^%%]*\\%s(\[[^\]]*\])?{([^}.]*)}' % macro, line)
+                if m:
+                    for ext in exts:
+                        files.add(m.group(2) + ext)
+
+        return list(files)
+
+    def document(self, path=''):
+        latex_file = open(self._file_path, 'r')
+        document = ''
+        p = False
+        for line in latex_file:
+            for macro in self._reference_macros:
+                line = re.sub(r'\\%s(\[[^\]]*\])?{([^}]*)}' % macro,
+                              r'\%s\g<1>{%s/\g<2>}' % (macro, path),
+                              line)
+
+            if re.search(r'\\end{document}', line):
+                p = False
+            if p:
+                document += line
+            if re.search(r'\\begin{document}', line):
+                p = True
+        latex_file.close()
+        return document
+
+    def title(self):
+        latex_file = open(self._file_path, 'r')
+        for line in latex_file:
+            m = re.search(r'\\title{([^}]*)}', line)
+            if m:
+                latex_file.close()
+                return m.group(1)
+
+        latex_file.close()
+        return ''
+
+class Statement(Latex):
+    def __init__(self, file_path, number=None):
+        super(Statement, self).__init__(file_path)
+        self._number = number
+        self._reference_macros['sampleIO'] = ['.in', '.sol']
+
+    def gen_pdf(self):
+        if self._number != None:
+            os.environ["OCIMATIC_PROBLEM_NUMBER"] = chr(ord('A') + self._number)
+
+        return super(Statement, self).gen_pdf()
+
+
+    def io_samples(self):
+        latex_file = open(self._file_path, 'r')
+        samples = set()
+        for line in latex_file:
+            m = re.match(r'[^%]*\\sampleIO{([^}]*)}', line)
+            m and samples.add(m.group(1))
+        latex_file.close()
+        return list(samples)

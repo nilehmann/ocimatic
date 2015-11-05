@@ -1,9 +1,10 @@
 import os
 import shutil
+import subprocess
 from glob import glob
 from tempfile import mkdtemp, NamedTemporaryFile
 
-from .latex import Latex, merge_files
+from .latex import Latex, Statement, merge_files
 from .source import make_solution_from_file_path, DiffChecker, CustomChecker
 
 
@@ -29,6 +30,13 @@ def create_layout_for_contest(contest_path):
     shutil.copytree(os.path.join(ocimatic_dir, "resources/contest-skel"),
                     contest_path)
 
+
+def compress(dst_file, files):
+    cmd_line = 'zip ' + dst_file
+    for f in files:
+        cmd_line += ' ' + f
+    f = open('/dev/null', 'a')
+    st = subprocess.call(cmd_line, stdout=f, shell=True) == 0
 
 class Contest:
     def __init__(self, dir_path):
@@ -85,15 +93,17 @@ def get_problems_from_dir(dir_path):
       (list of Problem)
     """
     problems = []
+    i = 0
     for path in sorted(glob('%s/*' % dir_path)):
-        if os.path.isdir(path):
-            problems.append(Problem(path))
+        if os.path.isdir(path) and os.path.isfile(os.path.join(path, '.problem')):
+            problems.append(Problem(path, i))
+            i += 1
     return problems
 
 
 def get_solutions_from_dir(dir_path):
     solutions = []
-    for file_path in glob(os.path.join(dir_path, '*')):
+    for file_path in sorted(glob(os.path.join(dir_path, '*'))):
         sol = make_solution_from_file_path(file_path)
         if sol:
             solutions.append(sol)
@@ -101,7 +111,7 @@ def get_solutions_from_dir(dir_path):
 
 
 class Problem:
-    def __init__(self, path):
+    def __init__(self, path, number=None):
         if not os.path.isdir(path):
             raise OcimaticException('No problem in `%s`.' % path)
         dir_path, name = os.path.split(os.path.normpath(path))
@@ -116,8 +126,9 @@ class Problem:
         self._partial_solutions = get_solutions_from_dir(
             os.path.join(self._path, 'solutions/partial'))
 
-        self._statement = Latex(os.path.join(self._path,
-                                             'documents/statement.tex'))
+        self._statement = Statement(os.path.join(self._path,
+                                                 'documents/statement.tex',),
+                                    number)
 
         self._samples = [TestData(os.path.join(self._path, 'documents', s))
                          for s in self._statement.io_samples()]
@@ -126,6 +137,9 @@ class Problem:
         if os.path.isfile(os.path.join(self._path, 'managers/checker')):
             self._checker = CustomChecker(os.path.join(self._path,
                                                        'managers/checker'))
+
+    def compress(self):
+        self._dataset.compress();
 
     def statement(self):
         return self._statement
@@ -218,7 +232,7 @@ class Dataset:
     def __init__(self, dir_path):
         if not os.path.isdir(dir_path):
             raise OcimaticException('No testdata directory `%s`.' % dir_path)
-        self.dir_path = dir_path
+        self._dir_path = dir_path
 
         self._dataset = []
         for file_path in sorted(glob(os.path.join(dir_path,
@@ -230,15 +244,25 @@ class Dataset:
         for test in self._dataset:
             yield test
 
+    def compress(self, dst_file=None):
+        files = []
+        for test in self._dataset:
+            files.append(test.input_path())
+            if test.has_expected():
+                files.append(test.expected_path())
+        if not dst_file:
+            dst_file = self._dir_path + 'data.zip'
+        compress(dst_file, files)
+
 
 class TestData:
-    input_ext = 'in'
-    expected_ext = 'sol'
+    input_ext = '.in'
+    expected_ext = '.sol'
 
     def __init__(self, basename_path):
         self._basename_path = basename_path
-        self._input_path = '%s.%s' % (basename_path, TestData.input_ext)
-        self._expected_path = '%s.%s' % (basename_path, TestData.expected_ext)
+        self._input_path = basename_path + TestData.input_ext
+        self._expected_path = basename_path + TestData.expected_ext
         assert os.path.isfile(self._input_path)
 
     def __str__(self):
