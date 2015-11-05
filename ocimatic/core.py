@@ -36,7 +36,8 @@ def compress(dst_file, files):
     for f in files:
         cmd_line += ' ' + f
     f = open('/dev/null', 'a')
-    st = subprocess.call(cmd_line, stdout=f, shell=True) == 0
+    return subprocess.call(cmd_line, stdout=f, shell=True) == 0
+
 
 class Contest:
     def __init__(self, dir_path):
@@ -139,7 +140,7 @@ class Problem:
                                                        'managers/checker'))
 
     def compress(self):
-        self._dataset.compress();
+        return self._dataset.compress()
 
     def statement(self):
         return self._statement
@@ -201,18 +202,19 @@ class Problem:
 
                 end_callback(TaskResult(msg, status))
 
-    def check(self, solution_callback, start_callback, end_callback):
+    def check(self, solution_callback, start_callback, end_callback, sample=True):
         self.run(solution_callback, start_callback, end_callback,
-                 False, True,
+                 False, sample,
                  lambda outcome, _: ('OK' if outcome >= 1.0 else 'Failed'),
                  lambda outcome, _: outcome >= 1.0)
 
-    def gen_solutions_for_dataset(self, start_callback, end_callback):
+    def gen_solutions_for_dataset(self, start_callback, end_callback,
+                                  sample=False):
         if len(self._correct_solutions) == 0:
             return
         # We use any correct solution
         solution = self._correct_solutions[0]
-        for test in self._dataset:
+        for test in self.__testdata_iter(sample):
             start_callback(str(test))
             if solution.run(test.input_path(), test.expected_path()):
                 end_callback(TaskResult('OK'))

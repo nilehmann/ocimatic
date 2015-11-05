@@ -12,6 +12,7 @@ from .core import OcimaticException
 OPTS = {
     'partial': False,
     'problem': None,
+    'no-sample': False,
 }
 
 RESET = '\x1b[0m'
@@ -197,9 +198,14 @@ def ocimatic_help():
                 ' ocimatic was called.')
     writeln()
     indent(1, bold('--partial'))
-    description(2, 'By default the action ' + bold('run') + ' doesn\'t'
+    description(2, 'By default the actions ' + bold('run') + ' doesn\'t'
                 ' execute partial solutions. Use this option to run partial'
                 ' solution as well.')
+    writeln()
+    indent(1, bold('--no-sample'))
+    description(2, 'By default the actions ' + bold('check') + ' and ' +
+                bold('expected') + ' run on sample inputs. Use this option to'
+                ' ignore samples.')
     writeln()
     sys.exit(1)
 
@@ -281,7 +287,8 @@ def problems_build(problems, _):
 def gen_sol_files(problems, _):
     for problem in problems:
         task_header(problem, "Generating expected solutions for testdata")
-        problem.gen_solutions_for_dataset(start_task, end_task)
+        problem.gen_solutions_for_dataset(start_task, end_task,
+                                          not OPTS['no-sample'])
 
 
 def problems_check(problems, _):
@@ -289,7 +296,7 @@ def problems_check(problems, _):
         problem.check(
             (lambda problem:
              lambda solution: task_header(problem, "Checking %s" % solution))(problem),
-            start_task, end_task)
+            start_task, end_task, not OPTS['no-sample'])
 
 
 def problems_run(problems, _):
@@ -355,7 +362,8 @@ def problem_mode(args):
 def main():
     try:
         optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:',
-                                          ['help', 'partial', 'problem='])
+                                          ['help', 'partial', 'problem=',
+                                           'no-sample'])
     except getopt.GetoptError as err:
         error_message(str(err))
 
@@ -381,6 +389,8 @@ def main():
             OPTS['partial'] = True
         elif key == '--problem' or key == '-p':
             OPTS['problem'] = val
+        elif key == '--no-sample':
+            OPTS['no-sample'] = True
 
     # Select mode
     try:
