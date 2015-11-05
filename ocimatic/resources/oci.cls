@@ -63,12 +63,18 @@
     \stepcounter{problemcnt}
 }
 
+\renewcommand*{\cleardoublepage}{\clearpage\if@twoside \ifodd\c@page\else
+\hbox{}%
+\thispagestyle{empty}%
+\newpage%
+\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+
 %% Secciones de description
 \renewcommand{\subsection}{\@startsection{subsection}{2}{\z@}%
                                      {-1.0ex\@plus -1ex \@minus -.2ex}%
                                      {1.0ex \@plus .2ex}%
                                    {\reset@font\large\bfseries}}
-\newenvironment{problemDescription}{\clearpage\mymaketitle}{}
+\newenvironment{problemDescription}{\cleardoublepage\mymaketitle}{}
 \newenvironment{inputDescription}{\subsection*{Entrada}}{\par}
 \newenvironment{outputDescription}{\subsection*{Salida}}{\par}
 

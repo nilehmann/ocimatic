@@ -9,8 +9,10 @@ from .core import Contest, create_layout_for_contest
 from .core import Problem, create_layout_for_problem
 from .core import OcimaticException
 
-OPT_PARTIAL = False
-OPT_PROBLEM = None
+OPTS = {
+    'partial': False,
+    'problem': None,
+}
 
 RESET = '\x1b[0m'
 BOLD = '\x1b[1m'
@@ -107,11 +109,11 @@ def end_task(res):
     print()
 
 
-tab_width = 6
+TAB_WIDTH = 6
 
 
 def indent(level, text):
-    writeln(' '*level*tab_width + text)
+    writeln(' '*level*TAB_WIDTH + text)
     # writeln('\t'*level + text)
 
 
@@ -120,8 +122,8 @@ def description(level, text, width=90):
     # tab_width = 6
     lines = textwrap.wrap(text,
                           width,
-                          initial_indent=' '*tab_width*level,
-                          subsequent_indent=' '*tab_width*level)
+                          initial_indent=' '*TAB_WIDTH*level,
+                          SUBSEQUENT_INDENT=' '*TAB_WIDTH*level)
     writeln('\n'.join(lines))
 
 
@@ -232,8 +234,8 @@ def new_contest(args):
     try:
         create_layout_for_contest(os.path.join(os.getcwd(), name))
         show_message('Info', 'Contest [%s] created' % name)
-    except Exception as e:
-        error_message('Couldn\'t create contest: %s.' % e)
+    except Exception as exc:
+        error_message('Couldn\'t create contest: %s.' % exc)
 
 
 def contest_pdf(contest, _):
@@ -266,8 +268,8 @@ def new_problem(args):
     try:
         create_layout_for_problem(os.path.join(os.getcwd(), name))
         show_message('Info', 'Problem [%s] created' % name)
-    except Exception as e:
-        error_message('Couldn\'t create problem: %s' % e)
+    except Exception as exc:
+        error_message('Couldn\'t create problem: %s' % exc)
 
 
 def problems_build(problems, _):
@@ -285,17 +287,20 @@ def gen_sol_files(problems, _):
 def problems_check(problems, _):
     for problem in problems:
         problem.check(
-            lambda solution: task_header(problem, "Checking %s" % solution),
+            (lambda problem:
+             lambda solution: task_header(problem, "Checking %s" % solution))(problem),
             start_task, end_task)
 
 
 def problems_run(problems, _):
     for problem in problems:
         problem.run(
-            lambda solution: task_header(problem, "Checking %s" % solution),
+            (lambda problem:
+             lambda solution:
+             task_header(problem, "Checking %s" % solution))(problem),
             start_task,
             end_task,
-            OPT_PARTIAL,
+            OPTS['partial'],
         )
 
 
@@ -323,8 +328,8 @@ def problem_mode(args):
     if args[0] == 'new':
         new_problem(args[1:])
     elif args[0] in actions:
-        if OPT_PROBLEM:
-            problems = [Problem(os.path.join(os.getcwd(), OPT_PROBLEM))]
+        if OPTS['problem']:
+            problems = [Problem(os.path.join(os.getcwd(), OPTS['problem']))]
         elif problem_call:
             problems = [Problem(problem_call)]
         else:
@@ -340,8 +345,6 @@ def problem_mode(args):
 
 
 def main():
-    global OPT_PARTIAL, OPT_PROBLEM
-
     try:
         optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:',
                                           ['help', 'partial', 'problem='])
@@ -367,9 +370,9 @@ def main():
         if key == '-h' or key == '--help':
             ocimatic_help()
         elif key == '--partial':
-            OPT_PARTIAL = True
+            OPTS['partial'] = True
         elif key == '--problem' or key == '-p':
-            OPT_PROBLEM = val
+            OPTS['problem'] = val
 
     # Select mode
     try:

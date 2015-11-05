@@ -49,7 +49,7 @@ def merge_files(files, dst_path):
     packages = merge_packages(files)
 
     # Preamble
-    output_file.write('\\documentclass{oci}\n')
+    output_file.write('\\documentclass[twoside]{oci}\n')
     for pkg, opts in packages.items():
         output_file.write('\\usepackage[%s]{%s}\n' % (','.join(opts), pkg))
 
