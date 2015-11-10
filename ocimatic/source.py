@@ -68,8 +68,8 @@ class CppSolution(Solution):
         return os.path.isfile(self._bin_path)
 
     def build(self):
-        cmd_line = 'g++ -std=c++11 -O2 -o %s %s' % (self._bin_path,
-                                                    self._src_path)
+        cmd_line = 'g++ -std=c++11 -O2 -o "%s" "%s"' % (self._bin_path,
+                                                        self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 
 
@@ -93,7 +93,7 @@ class CSolution(Solution):
         return os.path.isfile(self._bin_path)
 
     def build(self):
-        cmd_line = 'gcc -O2 -lm -std=c99 -o %s %s' % (self._bin_path,
+        cmd_line = 'gcc -O2 -lm -std=c99 -o "%s" "%s"' % (self._bin_path,
                                                       self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 

@@ -35,6 +35,7 @@
 %% HEADER
 \global\let\@phase\@empty
 \newcommand{\phase}[1]{\def\@phase{#1}}
+\newcommand{\thephase}{\@phase}
 
 \setlength\headheight{54.3pt} 
 \pagestyle{fancy}
