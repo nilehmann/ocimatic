@@ -158,6 +158,11 @@ class Problem:
             for test in self._samples:
                 yield test
 
+    def normalize(self):
+        self._dataset.normalize()
+        for sample in self._samples:
+            sample.normalize()
+
     def run(self, solution_callback, start_callback, end_callback,
             partial, sample=False,
             formatter=lambda outcome, time: '%.3f [%.3f]' % (outcome, time),
@@ -222,7 +227,6 @@ class Problem:
             else:
                 end_callback(TaskResult('Failed', False))
 
-
 class Dataset:
     def __init__(self, dir_path):
         if not os.path.isdir(dir_path):
@@ -241,6 +245,10 @@ class Dataset:
         for test in self._dataset:
             yield test
 
+    def normalize(self):
+        for test in self._dataset:
+            test.normalize()
+
     def compress(self, dst_file=None):
         tmpdir = mkdtemp()
         i = 1
@@ -255,7 +263,7 @@ class Dataset:
                 i += 1
         cmd_line = "cd %s && zip data.zip *.in *sol" % tmpdir
         f = open('/dev/null', 'a')
-        subprocess.call(cmd_line, stdout=f, shell=True) == 0
+        subprocess.call(cmd_line, stdout=f, shell=True)
         if not dst_file:
             dst_file = os.path.join(self._dir_path, 'data.zip')
         shutil.copy2(os.path.join(tmpdir, 'data.zip'), dst_file)
@@ -274,6 +282,14 @@ class TestData:
 
     def __str__(self):
         return self._input_path
+
+    def normalize(self):
+        cmd_input = "sed -i -e '$a\\' %s" % self.input_path()
+        cmd_expected = "sed -i -e '$a\\' %s" % self.expected_path()
+        f = open('/dev/null', 'a')
+        subprocess.call(cmd_input, stdout=f, shell=True)
+        if self.has_expected():
+          subprocess.call(cmd_expected, stdout=f, shell=True)
 
     def input_path(self):
         return self._input_path

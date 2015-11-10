@@ -323,6 +323,10 @@ def problems_compress(problems, _):
         problem.compress()
 
 
+def problems_normalize(problems, _):
+    for problem in problems:
+        task_header(problem, "Normalizing test data")
+        problem.normalize()
 
 def problem_mode(args):
     if not args:
@@ -335,6 +339,7 @@ def problem_mode(args):
         'pdf': problems_pdf,
         'run': problems_run,
         'compress' : problems_compress,
+        'normalize' : problems_normalize,
     }
 
     problem_call = change_directory()

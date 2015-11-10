@@ -225,4 +225,4 @@ class Statement(Latex):
             m = re.match(r'[^%]*\\sampleIO{([^}]*)}', line)
             m and samples.add(m.group(1))
         latex_file.close()
-        return list(samples)
+        return sorted(list(samples))
