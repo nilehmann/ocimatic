@@ -124,7 +124,7 @@ def description(level, text, width=90):
     lines = textwrap.wrap(text,
                           width,
                           initial_indent=' '*TAB_WIDTH*level,
-                          SUBSEQUENT_INDENT=' '*TAB_WIDTH*level)
+                          subsequent_indent=' '*TAB_WIDTH*level)
     writeln('\n'.join(lines))
 
 

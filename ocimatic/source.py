@@ -58,6 +58,10 @@ class CppSolution(Solution):
     def run(self, in_path, out_path):
         if not self.isbuilt():
             self.build()
+        bin_time = os.path.getmtime(self._bin_path)
+        src_time = os.path.getmtime(self._src_path)
+        if src_time > bin_time:
+            self.build()
         return Binary(self._bin_path).run(in_path, out_path)
 
     def isbuilt(self):
