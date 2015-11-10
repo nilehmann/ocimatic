@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+from math import floor, log
 from glob import glob
 from tempfile import mkdtemp, NamedTemporaryFile
 
@@ -29,14 +30,6 @@ def create_layout_for_contest(contest_path):
     ocimatic_dir = os.path.dirname(__file__)
     shutil.copytree(os.path.join(ocimatic_dir, "resources/contest-skel"),
                     contest_path)
-
-
-def compress(dst_file, files):
-    cmd_line = 'zip ' + dst_file
-    for f in files:
-        cmd_line += ' ' + f
-    f = open('/dev/null', 'a')
-    return subprocess.call(cmd_line, stdout=f, shell=True) == 0
 
 
 class Contest:
@@ -249,14 +242,24 @@ class Dataset:
             yield test
 
     def compress(self, dst_file=None):
-        files = []
+        tmpdir = mkdtemp()
+        i = 1
+        in_format = "%%0%dd.in" % (floor(log(len(self._dataset), 10)) + 1)
+        sol_format = "%%0%dd.sol" % (floor(log(len(self._dataset), 10)) + 1)
         for test in self._dataset:
-            files.append(test.input_path())
             if test.has_expected():
-                files.append(test.expected_path())
+                in_name = in_format % i
+                sol_name = sol_format % i
+                shutil.copy2(test.input_path(), os.path.join(tmpdir, in_name))
+                shutil.copy2(test.expected_path(), os.path.join(tmpdir, sol_name))
+                i += 1
+        cmd_line = "cd %s && zip data.zip *.in *sol" % tmpdir
+        f = open('/dev/null', 'a')
+        subprocess.call(cmd_line, stdout=f, shell=True) == 0
         if not dst_file:
-            dst_file = self._dir_path + 'data.zip'
-        compress(dst_file, files)
+            dst_file = os.path.join(self._dir_path, 'data.zip')
+        shutil.copy2(os.path.join(tmpdir, 'data.zip'), dst_file)
+        shutil.rmtree(tmpdir)
 
 
 class TestData:
