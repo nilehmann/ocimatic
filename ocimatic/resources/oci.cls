@@ -34,6 +34,7 @@
 
 %% HEADER
 \global\let\@phase\@empty
+\getenv[\@problem]{OCIMATIC_PHASE}
 \newcommand{\phase}[1]{\def\@phase{#1}}
 \newcommand{\thephase}{\@phase}
 

@@ -366,7 +366,7 @@ def main():
     try:
         optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:',
                                           ['help', 'partial', 'problem=',
-                                           'no-sample'])
+                                           '--phase=', 'sample'])
     except getopt.GetoptError as err:
         error_message(str(err))
 
@@ -392,8 +392,10 @@ def main():
             OPTS['partial'] = True
         elif key == '--problem' or key == '-p':
             OPTS['problem'] = val
-        elif key == '--no-sample':
+        elif key == '--sample':
             OPTS['sample'] = True
+        elif key == '--phase':
+            os.environ["OCIMATIC_PHASE"] = val
 
     # Select mode
     try:
