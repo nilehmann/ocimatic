@@ -12,7 +12,7 @@ from .core import OcimaticException
 OPTS = {
     'partial': False,
     'problem': None,
-    'no-sample': False,
+    'sample': False,
 }
 
 RESET = '\x1b[0m'
@@ -202,10 +202,9 @@ def ocimatic_help():
                 ' execute partial solutions. Use this option to run partial'
                 ' solution as well.')
     writeln()
-    indent(1, bold('--no-sample'))
-    description(2, 'By default the actions ' + bold('check') + ' and ' +
-                bold('expected') + ' run on sample inputs. Use this option to'
-                ' ignore samples.')
+    indent(1, bold('--sample'))
+    description(2, 'By default the action ' + bold('expected') + ' does not'
+                ' generate sample outputs. Use this option to consider samples.')
     writeln()
     sys.exit(1)
 
@@ -287,8 +286,7 @@ def problems_build(problems, _):
 def gen_sol_files(problems, _):
     for problem in problems:
         task_header(problem, "Generating expected solutions for testdata")
-        problem.gen_solutions_for_dataset(start_task, end_task,
-                                          not OPTS['no-sample'])
+        problem.gen_solutions_for_dataset(start_task, end_task, OPTS['sample'])
 
 
 def problems_check(problems, _):
@@ -296,7 +294,7 @@ def problems_check(problems, _):
         problem.check(
             (lambda problem:
              lambda solution: task_header(problem, "Checking %s" % solution))(problem),
-            start_task, end_task, not OPTS['no-sample'])
+            start_task, end_task)
 
 
 def problems_run(problems, _):
@@ -395,7 +393,7 @@ def main():
         elif key == '--problem' or key == '-p':
             OPTS['problem'] = val
         elif key == '--no-sample':
-            OPTS['no-sample'] = True
+            OPTS['sample'] = True
 
     # Select mode
     try:
