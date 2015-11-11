@@ -119,7 +119,7 @@ class JavaSolution(Solution):
         return os.path.isfile(self._bytecode_path)
 
     def build(self):
-        cmd_line = 'javac %s' % (self._src_path)
+        cmd_line = 'javac "%s"' % (self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 
 class Binary:
