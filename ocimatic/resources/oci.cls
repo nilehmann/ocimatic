@@ -34,7 +34,7 @@
 
 %% HEADER
 \global\let\@phase\@empty
-\getenv[\@problem]{OCIMATIC_PHASE}
+\getenv[\@phase]{OCIMATIC_PHASE}
 \newcommand{\phase}[1]{\def\@phase{#1}}
 \newcommand{\thephase}{\@phase}
 
@@ -42,6 +42,7 @@
 \pagestyle{fancy}
 \lhead{\includegraphics[height=37.5pt]{logo.eps}}
 \rhead{\@phase\ \the\year}
+\cfoot{}
 \renewcommand{\headrulewidth}{0.2pt}
 
 

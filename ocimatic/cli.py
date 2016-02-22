@@ -366,7 +366,7 @@ def main():
     try:
         optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:',
                                           ['help', 'partial', 'problem=',
-                                           '--phase=', 'sample'])
+                                           'phase=', 'sample'])
     except getopt.GetoptError as err:
         error_message(str(err))
 

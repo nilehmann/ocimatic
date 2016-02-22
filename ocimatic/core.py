@@ -284,11 +284,15 @@ class TestData:
         return self._input_path
 
     def normalize(self):
+        tounix_input = "dos2unix \"%s\"" % self.input_path()
+        tounix_expected = "dos2unix \"%s\"" % self.expected_path()
         cmd_input = "sed -i -e '$a\\' \"%s\"" % self.input_path()
         cmd_expected = "sed -i -e '$a\\' \"%s\"" % self.expected_path()
         f = open('/dev/null', 'a')
+        subprocess.call(tounix_input, stdout=f, shell=True)
         subprocess.call(cmd_input, stdout=f, shell=True)
         if self.has_expected():
+          subprocess.call(tounix_expected, stdout=f, shell=True)
           subprocess.call(cmd_expected, stdout=f, shell=True)
 
     def input_path(self):
