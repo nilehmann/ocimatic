@@ -58,7 +58,8 @@
 \newcounter{problemcnt}
 \setcounter{problemcnt}{1}
 
-\newcommand{\mymaketitle}{
+\renewcommand{\maketitle}{
+  \cleardoublepage{}
     \begin{center}
       \ifproblemcnt%
       {\huge\bf \sf Problema \Alph{problemcnt}}\\
@@ -83,7 +84,7 @@
                                      {-1.0ex\@plus -1ex \@minus -.2ex}%
                                      {1.0ex \@plus .2ex}%
                                    {\reset@font\large\bfseries}}
-\newenvironment{problemDescription}{\cleardoublepage\mymaketitle}{}
+\newenvironment{problemDescription}{\maketitle}{}
 \newenvironment{inputDescription}{\subsection*{Entrada}}{\par}
 \newenvironment{outputDescription}{\subsection*{Salida}}{\par}
 
