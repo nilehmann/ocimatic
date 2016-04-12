@@ -56,14 +56,15 @@ class CppSolution(Solution):
 
         self._managers_path = managers_path
         self._grader_path = ''
-        if os.path.exists(os.path.join(managers_path, CppSolution.grader_name)):
-            self._grader_path = os.path.join(managers_path, CppSolution.grader_name)
+        if os.path.exists(os.path.join(managers_path, self.grader_name)):
+            self._grader_path = os.path.join(managers_path, self.grader_name)
 
     def __str__(self):
         return self._basename_path
 
     def run(self, in_path, out_path):
         if self.need_rebuilt():
+            print("Rebuilt")
             self.build()
         return Binary(self._bin_path).run(in_path, out_path)
 
@@ -71,7 +72,7 @@ class CppSolution(Solution):
         return os.path.isfile(self._bin_path)
 
     def need_rebuilt(self):
-        if self.isbuilt:
+        if self.isbuilt():
             bin_time = os.path.getmtime(self._bin_path)
             src_time = os.path.getmtime(self._src_path)
             return src_time > bin_time
