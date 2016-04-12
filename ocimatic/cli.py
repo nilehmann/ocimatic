@@ -180,12 +180,19 @@ def ocimatic_help():
     description(2, 'Generates pdf file for the problem statement.')
     indent(1, bold('check'))
     description(2, 'Checks input/output running all correct solutions with all'
-                ' testdata and sample inputs.')
+                ' testdata and sample inputs.'
+                ' It compiles solutions if no binary is present'
+                ' or when binary is older than source file.')
     indent(1, bold('run'))
     description(2, 'Run solutions with all test data and display the output'
-                ' of the checker.')
+                ' of the checker. It compiles solutions if no binary is present'
+                ' or when binary is older than source file.')
     indent(1, bold('build'))
     description(2, 'Build all correct and partial solutions.')
+    indent(1, bold('normalize'))
+    description(2, 'Normalize input (*.in) and expected (*.sol) files.')
+    indent(1, bold('compress'))
+    description(2, 'Compress testdata (*.in and *.sol) in a .zip file.')
     writeln()
 
     header('OPTIONS')
@@ -198,7 +205,7 @@ def ocimatic_help():
                 ' ocimatic was called.')
     writeln()
     indent(1, bold('--partial'))
-    description(2, 'By default the actions ' + bold('run') + ' doesn\'t'
+    description(2, 'By default the action ' + bold('run') + ' doesn\'t'
                 ' execute partial solutions. Use this option to run partial'
                 ' solution as well.')
     writeln()

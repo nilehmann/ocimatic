@@ -95,10 +95,10 @@ def get_problems_from_dir(dir_path):
     return problems
 
 
-def get_solutions_from_dir(dir_path):
+def get_solutions_from_dir(dir_path, managers_path):
     solutions = []
     for file_path in sorted(glob(os.path.join(dir_path, '*'))):
-        sol = make_solution_from_file_path(file_path)
+        sol = make_solution_from_file_path(file_path, managers_path)
         if sol:
             solutions.append(sol)
     return solutions
@@ -115,10 +115,12 @@ class Problem:
         self._dataset = Dataset(os.path.join(self._path, 'testdata'))
 
         self._correct_solutions = get_solutions_from_dir(
-            os.path.join(self._path, 'solutions/correct'))
+            os.path.join(self._path, 'solutions/correct'),
+            os.path.join(self._path, 'managers'))
 
         self._partial_solutions = get_solutions_from_dir(
-            os.path.join(self._path, 'solutions/partial'))
+            os.path.join(self._path, 'solutions/partial'),
+            os.path.join(self._path, 'managers'))
 
         self._statement = Statement(os.path.join(self._path,
                                                  'documents/statement.tex',),

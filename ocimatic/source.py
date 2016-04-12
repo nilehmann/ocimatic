@@ -3,16 +3,17 @@ from tempfile import NamedTemporaryFile
 import subprocess
 
 
-def make_solution_from_file_path(file_path):
+def make_solution_from_file_path(file_path, managers_path):
     basename_path, ext = os.path.splitext(file_path)
     if ext == CppSolution.src_ext:
-        return CppSolution(basename_path)
+        return CppSolution(basename_path, managers_path)
     if ext == CSolution.src_ext:
-        return CSolution(basename_path)
+        return CSolution(basename_path, managers_path)
     if ext == JavaSolution.src_ext:
-        return JavaSolution(basename_path)
+        return JavaSolution(basename_path, managers_path)
     else:
         return None
+
 
 def run(cmd, in_path, out_path, *args):
     pid = os.fork()
@@ -46,40 +47,58 @@ class Solution:
 
 class CppSolution(Solution):
     src_ext = ".cpp"
+    grader_name = "grader.cpp"
 
-    def __init__(self, basename_path):
+    def __init__(self, basename_path, managers_path=''):
         self._basename_path = basename_path
         self._src_path = basename_path + self.src_ext
         self._bin_path = basename_path + ".bin"
+
+        self._managers_path = managers_path
+        self._grader_path = ''
+        if os.path.exists(os.path.join(managers_path, CppSolution.grader_name)):
+            self._grader_path = os.path.join(managers_path, CppSolution.grader_name)
 
     def __str__(self):
         return self._basename_path
 
     def run(self, in_path, out_path):
-        if not self.isbuilt():
-            self.build()
-        bin_time = os.path.getmtime(self._bin_path)
-        src_time = os.path.getmtime(self._src_path)
-        if src_time > bin_time:
+        if self.need_rebuilt():
             self.build()
         return Binary(self._bin_path).run(in_path, out_path)
 
     def isbuilt(self):
         return os.path.isfile(self._bin_path)
 
+    def need_rebuilt(self):
+        if self.isbuilt:
+            bin_time = os.path.getmtime(self._bin_path)
+            src_time = os.path.getmtime(self._src_path)
+            return src_time > bin_time
+        return true
+
     def build(self):
-        cmd_line = 'g++ -std=c++11 -O2 -o "%s" "%s"' % (self._bin_path,
-                                                        self._src_path)
+        cmd_line = 'g++ -std=c++11 -O2 -I"%s" -o "%s" "%s" "%s"' % (
+            self._managers_path,
+            self._bin_path,
+            self._grader_path,
+            self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 
 
 class CSolution(Solution):
     src_ext = ".c"
+    grader_name = "grader.c"
 
-    def __init__(self, basename_path):
+    def __init__(self, basename_path, managers_path):
         self._basename_path = basename_path
         self._src_path = basename_path + self.src_ext
         self._bin_path = basename_path + ".bin"
+
+        self._managers_path = managers_path
+        self._grader_path = ''
+        if os.path.exists(os.path.join(managers_path, CSolution.grader_name)):
+            self._grader_path = os.path.join(managers_path, CSolution.grader_name)
 
     def __str__(self):
         return self._basename_path
@@ -93,17 +112,30 @@ class CSolution(Solution):
         return os.path.isfile(self._bin_path)
 
     def build(self):
-        cmd_line = 'gcc -O2 -lm -std=c99 -o "%s" "%s"' % (self._bin_path,
-                                                      self._src_path)
+        bin_time = os.path.getmtime(self._bin_path)
+        src_time = os.path.getmtime(self._src_path)
+        if src_time <= bin_time:
+            return true
+        cmd_line = 'gcc -O2 -lm -std=c99 -o -I"%s" "%s" "%s" "%s"' % (
+                self._managers_path,
+                self._bin_path,
+                self._grader_path,
+                self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 
 class JavaSolution(Solution):
     src_ext = ".java"
+    grader_name = "Grader.java"
 
-    def __init__(self, basename_path):
+    def __init__(self, basename_path, managers_path):
         (self._class_path, self._class_name) = os.path.split(basename_path)
         self._src_path = basename_path + self.src_ext
         self._bytecode_path = basename_path + ".class"
+
+        # self._managers_path = managers_path
+        # self._grader_path = ''
+        # if os.path.exists(os.path.join(managers_path, JavaSolution.grader_name)):
+        #     self._grader_path = os.path.join(grader_path, JavaSolution.grader_name)
 
     def __str__(self):
         return os.path.join(self._class_path, self._class_name)
@@ -119,6 +151,10 @@ class JavaSolution(Solution):
         return os.path.isfile(self._bytecode_path)
 
     def build(self):
+        bytecode_time = os.path.getmtime(self._bytecode_path)
+        src_time = os.path.getmtime(self._src_path)
+        if src_time <= bytecode_time:
+            return true
         cmd_line = 'javac "%s"' % (self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 
