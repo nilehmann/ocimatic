@@ -17,20 +17,6 @@ def copytree(src, dst, symlinks=False, ignore=None):
             shutil.copy2(s, d)
 
 
-def compile_latex(dir_path, filename):
-    cmd_line = 'cd %s && pdflatex %s %s' % (dir_path,
-                                            '-interaction=batchmode',
-                                            # '',
-                                            filename)
-
-    # We run latex multiple times just to be sure all is in place
-    f = open('/dev/null', 'a')
-    # f = open('/dev/stdout', 'w')
-    st = subprocess.call(cmd_line, stdout=f, shell=True) == 0
-    st = st and subprocess.call(cmd_line, stdout=f, shell=True) == 0
-    st = st and subprocess.call(cmd_line, stdout=f, shell=True) == 0
-    return st
-
 
 def merge_packages(files):
     packages = {}
@@ -95,34 +81,25 @@ class Latex:
             'input' : ['.tex'],
         }
 
-    def gen_pdf(self):
-        tmpdir_path = mkdtemp()
+    def get_pdf_path(self):
+        (base, _)  = os.path.splitext(self._file_path)
+        return base+".pdf"
 
-        try:
-            copytree(self._dir_path, tmpdir_path)
 
-            # Copy oci.cls and logo.eps
-            script_dir = path.dirname(__file__)
-            shutil.copy2(path.join(script_dir, 'resources/oci.cls'),
-                         path.join(tmpdir_path, 'oci.cls'))
-            shutil.copy2(path.join(script_dir, 'resources/logo.eps'),
-                         path.join(tmpdir_path, 'logo.eps'))
+    def compile(self):
+        cmd_line = 'cd %s && pdflatex --shell-escape %s %s' % (self._dir_path,
+                                                               '-interaction=batchmode',
+                                                               # '',
+                                                               self._file_path)
 
-            # Compile
-            status = compile_latex(tmpdir_path, self._filename)
+        # We run latex multiple times just to be sure all is in place
+        f = open('/dev/null', 'a')
+        # f = open('/dev/stdout', 'w')
+        st = subprocess.call(cmd_line, stdout=f, shell=True) == 0
+        st = st and subprocess.call(cmd_line, stdout=f, shell=True) == 0
+        st = st and subprocess.call(cmd_line, stdout=f, shell=True) == 0
+        return st
 
-            # Copy generated pdf
-            basename, _ = path.splitext(self._filename)
-            pdf = basename + ".pdf"
-            shutil.copy2(path.join(tmpdir_path, pdf),
-                         path.join(self._dir_path, pdf))
-        except Exception:
-            # raise e
-            return False
-        finally:
-            shutil.rmtree(tmpdir_path)
-
-        return status
 
     def __str__(self):
         return self._file_path
@@ -133,6 +110,7 @@ class Latex:
         for line in latex_file:
             if re.search(r'\\begin{document}', line):
                 break
+            # Do not include usepackages and document class in preamble
             m1 = re.search(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
             m2 = re.search(r'\\documentclass(\[([^\]]*)\])?{([^}]*)}', line)
             if not m1 and not m2:
@@ -145,7 +123,7 @@ class Latex:
         latex_file = open(self._file_path, 'r')
         packages = {}
         for line in latex_file:
-            m = re.search(r'\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
+            m = re.search(r'^\\usepackage(\[([^\]]*)\])?{([^}]*)}', line)
             if m:
                 # multiple packages
                 for pkg in m.group(3).split(','):
@@ -205,6 +183,7 @@ class Latex:
         latex_file.close()
         return ''
 
+
 class Statement(Latex):
     def __init__(self, file_path, number=None):
         super(Statement, self).__init__(file_path)
@@ -215,7 +194,7 @@ class Statement(Latex):
         if self._number != None:
             os.environ["OCIMATIC_PROBLEM_NUMBER"] = chr(ord('A') + self._number)
 
-        return super(Statement, self).gen_pdf()
+        return self.compile()
 
 
     def io_samples(self):

@@ -55,8 +55,9 @@ class CppSolution(Solution):
         self._bin_path = basename_path + ".bin"
 
         self._managers_path = managers_path
-        self._grader_path = ''
+        self._use_grader = False
         if os.path.exists(os.path.join(managers_path, self.grader_name)):
+            self._use_grader = True
             self._grader_path = os.path.join(managers_path, self.grader_name)
 
     def __str__(self):
@@ -79,10 +80,13 @@ class CppSolution(Solution):
         return True
 
     def build(self):
-        cmd_line = 'g++ -std=c++11 -O2 -I"%s" -o "%s" "%s" "%s"' % (
+        grader = ''
+        if self._use_grader:
+            grader = '"'+self._grader_path+'"'
+        cmd_line = 'g++ -std=c++11 -O2 -I"%s" -o "%s" %s "%s"' % (
             self._managers_path,
             self._bin_path,
-            self._grader_path,
+            grader,
             self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 
@@ -97,9 +101,6 @@ class CSolution(Solution):
         self._bin_path = basename_path + ".bin"
 
         self._managers_path = managers_path
-        self._grader_path = ''
-        if os.path.exists(os.path.join(managers_path, CSolution.grader_name)):
-            self._grader_path = os.path.join(managers_path, CSolution.grader_name)
 
     def __str__(self):
         return self._basename_path
@@ -117,10 +118,9 @@ class CSolution(Solution):
         src_time = os.path.getmtime(self._src_path)
         if src_time <= bin_time:
             return True
-        cmd_line = 'gcc -O2 -lm -std=c99 -o -I"%s" "%s" "%s" "%s"' % (
+        cmd_line = 'gcc -O2 -lm -std=c99 -I"%s" -o "%s" "%s"' % (
                 self._managers_path,
                 self._bin_path,
-                self._grader_path,
                 self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 

@@ -46,33 +46,55 @@ class Contest:
         return self._problems
 
     def gen_problemset_pdf(self):
-        try:
-            # Temp working directory
-            tmpdir_path = mkdtemp()
+        st = True
+        for problem in self._problems:
+            st = problem.gen_pdf()
+        st = self._titlepage.compile()
 
-            # Merge files
-            latex_files = [p.statement() for p in self._problems]
-            latex_files.insert(0, self._titlepage)
-            problemset_tex = os.path.join(tmpdir_path, 'problemset.tex')
-            merge_files(latex_files, problemset_tex)
+        pdfs = [self._titlepage.get_pdf_path()] + [p.statement().get_pdf_path() for p in self._problems]
 
-            # Generate pdf
-            latex_file = Latex(problemset_tex)
-            status = latex_file.gen_pdf()
-            if status:
-                shutil.copy2(os.path.join(tmpdir_path, 'problemset.pdf'),
-                             os.path.join(self._dir_path, 'problemset.pdf'))
-                msg = 'OK'
-            else:
-                msg = 'Failed'
-        except Exception as e:
-            raise e
-            # raise e
-            # msg = 'Un'
-            # status = False
-        finally:
-            shutil.rmtree(tmpdir_path)
-        return TaskResult(msg, status)
+        cmd_line = 'gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=%s' % (
+            os.path.join(self._dir_path, "problemset.pdf"))
+
+        for pdf in pdfs:
+            cmd_line += " "+pdf
+
+        f = open('/dev/null', 'a')
+        st = subprocess.call(cmd_line, stdout=f, shell=True) == 0
+
+        if st:
+            msg = 'OK'
+        else:
+            msg = 'Failed'
+        return TaskResult(msg, st)
+
+        # try:
+        #     # Temp working directory
+        #     tmpdir_path = mkdtemp()
+
+        #     # Merge files
+        #     latex_files = [p.statement() for p in self._problems]
+        #     latex_files.insert(0, self._titlepage)
+        #     problemset_tex = os.path.join(tmpdir_path, 'problemset.tex')
+        #     merge_files(latex_files, problemset_tex)
+
+        #     # Generate pdf
+        #     latex_file = Latex(problemset_tex)
+        #     status = latex_file.gen_pdf()
+        #     if status:
+        #         shutil.copy2(os.path.join(tmpdir_path, 'problemset.pdf'),
+        #                      os.path.join(self._dir_path, 'problemset.pdf'))
+        #         msg = 'OK'
+        #     else:
+        #         msg = 'Failed'
+        # except Exception as e:
+        #     raise e
+        #     # raise e
+        #     # msg = 'Un'
+        #     # status = False
+        # finally:
+        #     shutil.rmtree(tmpdir_path)
+        # return TaskResult(msg, status)
 
 
 def create_layout_for_problem(problem_path):
@@ -146,7 +168,7 @@ class Problem:
     def __str__(self):
         return self.name()
 
-    def gen_pdf(self, start_callback, end_callback):
+    def gen_pdf(self, start_callback=lambda x: x, end_callback=lambda x : x):
         start_callback(str(self._statement))
         if self._statement.gen_pdf():
             end_callback(TaskResult('OK'))
