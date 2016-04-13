@@ -76,7 +76,7 @@ class CppSolution(Solution):
             bin_time = os.path.getmtime(self._bin_path)
             src_time = os.path.getmtime(self._src_path)
             return src_time > bin_time
-        return true
+        return True
 
     def build(self):
         cmd_line = 'g++ -std=c++11 -O2 -I"%s" -o "%s" "%s" "%s"' % (
@@ -116,7 +116,7 @@ class CSolution(Solution):
         bin_time = os.path.getmtime(self._bin_path)
         src_time = os.path.getmtime(self._src_path)
         if src_time <= bin_time:
-            return true
+            return True
         cmd_line = 'gcc -O2 -lm -std=c99 -o -I"%s" "%s" "%s" "%s"' % (
                 self._managers_path,
                 self._bin_path,
@@ -142,7 +142,7 @@ class JavaSolution(Solution):
         return os.path.join(self._class_path, self._class_name)
 
     def run(self, in_path, out_path):
-        if not self.isbuilt():
+        if self.need_rebuilt():
             self.build()
         return run("/usr/bin/java", in_path, out_path,
                    "-cp", self._class_path,
@@ -151,11 +151,14 @@ class JavaSolution(Solution):
     def isbuilt(self):
         return os.path.isfile(self._bytecode_path)
 
+    def need_rebuilt(self):
+        if self.isbuilt():
+            bytecode_time = os.path.getmtime(self._bytecode_path)
+            src_time = os.path.getmtime(self._src_path)
+            return src_time > bytecode_time
+        return True
+
     def build(self):
-        bytecode_time = os.path.getmtime(self._bytecode_path)
-        src_time = os.path.getmtime(self._src_path)
-        if src_time <= bytecode_time:
-            return true
         cmd_line = 'javac "%s"' % (self._src_path)
         return subprocess.call(cmd_line, shell=True) == 0
 
