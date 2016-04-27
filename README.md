@@ -1,3 +1,7 @@
+Old version of ocimatic. For a renewed version go to http://github.com/ocioficial/ocimatic
+
+
+
 Ocimatic
 ========
 
